@@ -1,3 +1,5 @@
+import { useToast } from "@/hooks/use-toast";
+
 declare global {
   interface Window {
     webkitSpeechRecognition: typeof SpeechRecognition;
