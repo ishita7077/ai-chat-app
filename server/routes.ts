@@ -4,14 +4,51 @@ import { storage } from "./storage";
 import OpenAI from "openai";
 import { insertMessageSchema, chatResponseSchema } from "@shared/schema";
 import { z } from "zod";
+import Voice from 'elevenlabs-node';
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+// Initialize ElevenLabs
+const voice = new Voice({
+  apiKey: process.env.ELEVENLABS_API_KEY
+});
+
+// Select a voice ID from ElevenLabs (you can choose different voices)
+const VOICE_ID = "21m00Tcm4TlvDq8ikWAM"; // Default voice ID - "Rachel"
 
 export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/messages", async (_req, res) => {
     const messages = await storage.getMessages();
     res.json(messages);
+  });
+
+  app.post("/api/tts", async (req, res) => {
+    try {
+      const { text } = req.body;
+      if (!text) {
+        return res.status(400).json({ message: "Text is required" });
+      }
+
+      // Generate audio using ElevenLabs
+      const audioBuffer = await voice.textToSpeech(VOICE_ID, {
+        text,
+        model_id: "eleven_monolingual_v1",
+        voice_settings: {
+          stability: 0.5,
+          similarity_boost: 0.75,
+          style: 0.0,
+          use_speaker_boost: true
+        }
+      });
+
+      // Send audio back to client
+      res.set('Content-Type', 'audio/mpeg');
+      res.send(Buffer.from(audioBuffer));
+    } catch (error) {
+      console.error("Error generating speech:", error);
+      res.status(500).json({ message: "Failed to generate speech" });
+    }
   });
 
   app.post("/api/messages", async (req, res) => {
@@ -40,7 +77,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ]
         });
 
-      // Parse and save the AI's response
+        // Parse and save the AI's response
         const aiMessage = chatResponseSchema.parse({
           role: "assistant",
           content: response.choices[0].message.content || "",

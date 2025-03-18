@@ -1,3 +1,5 @@
+import Voice from 'elevenlabs-node';
+
 declare global {
   interface Window {
     webkitSpeechRecognition: typeof SpeechRecognition;
@@ -6,9 +8,9 @@ declare global {
 
 export class SpeechHandler {
   private recognition: SpeechRecognition | null = null;
-  private synthesis: SpeechSynthesis;
   private isSpeaking: boolean = false;
-  private voices: SpeechSynthesisVoice[] = [];
+  private audio: HTMLAudioElement | null = null;
+  private voice: Voice;
 
   constructor() {
     if ('webkitSpeechRecognition' in window) {
@@ -22,66 +24,12 @@ export class SpeechHandler {
         this.recognition = null;
       }
     }
-    this.synthesis = window.speechSynthesis;
 
-    // Initialize voices
-    this.loadVoices();
-    this.synthesis.onvoiceschanged = () => {
-      this.loadVoices();
-    };
-  }
-
-  private loadVoices() {
-    this.voices = this.synthesis.getVoices();
-  }
-
-  private formatTextForNaturalSpeech(text: string): string {
-    // Add periods if missing at the end of sentences
-    text = text.replace(/([a-z])\s+([A-Z])/g, '$1. $2');
-
-    // Ensure proper spacing after punctuation
-    text = text.replace(/([.,!?])([A-Za-z])/g, '$1 $2');
-
-    // Add slight pauses for commas and longer pauses for periods
-    text = text.replace(/,/g, ', ');
-    text = text.replace(/\./g, '... ');
-
-    // Add natural pauses after phrases
-    text = text.replace(/(\b(?:however|moreover|furthermore|additionally|therefore|consequently|meanwhile|nevertheless|although|otherwise|anyway|besides|still|yet|also|thus)\b)/gi, '... $1, ');
-
-    // Add emphasis to important words
-    text = text.replace(/(!important|!key|!emphasize|!note)/gi, '... ');
-
-    // Break long sentences into smaller chunks
-    text = text.replace(/(.{50,}?[.!?])\s+/g, '$1... ');
-
-    return text;
-  }
-
-  private selectBestVoice(): SpeechSynthesisVoice | null {
-    const preferredVoices = [
-      { name: 'Samantha', score: 5 },      // MacOS (very natural)
-      { name: 'David', score: 4 },         // MacOS (natural male voice)
-      { name: 'Google UK English Female', score: 4 }, // Chrome (good quality)
-      { name: 'Microsoft Zira', score: 3 }, // Windows (decent)
-      { name: 'Google US English', score: 3 } // Chrome (backup)
-    ];
-
-    let bestVoice = null;
-    let highestScore = -1;
-
-    for (const voice of this.voices) {
-      if (!voice.lang.startsWith('en')) continue;
-
-      for (const pv of preferredVoices) {
-        if (voice.name.includes(pv.name) && pv.score > highestScore) {
-          bestVoice = voice;
-          highestScore = pv.score;
-        }
-      }
-    }
-
-    return bestVoice || this.voices.find(v => v.lang.startsWith('en')) || null;
+    // Initialize audio element for playing ElevenLabs audio
+    this.audio = new Audio();
+    this.audio.addEventListener('ended', () => {
+      this.isSpeaking = false;
+    });
   }
 
   startListening(onResult: (text: string) => void, onError: (error: string) => void) {
@@ -123,37 +71,37 @@ export class SpeechHandler {
     }
   }
 
-  speak(text: string) {
-    if (!this.synthesis) return;
-
-    // Cancel any ongoing speech
-    this.synthesis.cancel();
-
+  async speak(text: string) {
     try {
-      const formattedText = this.formatTextForNaturalSpeech(text);
-      const utterance = new SpeechSynthesisUtterance(formattedText);
-
-      const selectedVoice = this.selectBestVoice();
-      if (selectedVoice) {
-        utterance.voice = selectedVoice;
-      }
-
-      // Adjust speech parameters for more natural sound
-      utterance.rate = 0.85;     // Slightly slower for clarity
-      utterance.pitch = 1.05;    // Very slightly higher pitch
-      utterance.volume = 1.0;    // Full volume
-      utterance.lang = 'en-US';
-
       this.isSpeaking = true;
 
-      utterance.onend = () => {
-        this.isSpeaking = false;
-      };
+      // Stop any current playback
+      if (this.audio) {
+        this.audio.pause();
+        this.audio.currentTime = 0;
+      }
 
-      // Add a small delay before speaking for more natural interaction
-      setTimeout(() => {
-        this.synthesis.speak(utterance);
-      }, 200);
+      // Get audio stream from server
+      const response = await fetch('/api/tts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to get audio from server');
+      }
+
+      const audioBlob = await response.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+
+      if (this.audio) {
+        this.audio.src = audioUrl;
+        await this.audio.play();
+        URL.revokeObjectURL(audioUrl);
+      }
     } catch (err) {
       console.error('Error with speech synthesis:', err);
       this.isSpeaking = false;
@@ -162,10 +110,6 @@ export class SpeechHandler {
 
   isSupported(): boolean {
     return this.recognition !== null;
-  }
-
-  isSpeechSupported(): boolean {
-    return typeof window.speechSynthesis !== 'undefined';
   }
 }
 
