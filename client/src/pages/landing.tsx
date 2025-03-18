@@ -3,7 +3,6 @@ import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { MessageSquare, Mic, Volume2, Sparkles } from "lucide-react";
 
 export default function Landing() {
   const [, setLocation] = useLocation();
@@ -42,7 +41,7 @@ export default function Landing() {
           <Button 
             size="lg" 
             onClick={() => setLocation("/chat")}
-            className="bg-primary/90 hover:bg-primary hover:scale-105 transition-all duration-300"
+            className="bg-primary/90 hover:bg-primary hover:scale-105 transition-all duration-300 shadow-[0_0_15px_rgba(0,0,0,0.1)] hover:shadow-[0_0_20px_rgba(var(--primary),0.3)] rounded-full px-8 py-6 text-lg"
           >
             Get Started
           </Button>
@@ -53,7 +52,7 @@ export default function Landing() {
           <div className="message-bubble message-bubble-user opacity-0 animate-fadeIn">
             How can you help me today?
           </div>
-          
+
           {showSecondBubble && (
             <div className="message-bubble message-bubble-ai mt-4 opacity-0 animate-fadeIn">
               I can assist with voice chat, text conversations, and provide helpful responses!
@@ -65,33 +64,6 @@ export default function Landing() {
               That sounds great! Let's get started.
             </div>
           )}
-        </div>
-
-        {/* Features */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
-          <Card className="p-6 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
-            <MessageSquare className="h-12 w-12 mb-4 text-primary" />
-            <h3 className="text-xl font-semibold mb-2">Natural Conversations</h3>
-            <p className="text-muted-foreground">Engage in fluid, context-aware discussions with advanced AI.</p>
-          </Card>
-
-          <Card className="p-6 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
-            <Mic className="h-12 w-12 mb-4 text-primary" />
-            <h3 className="text-xl font-semibold mb-2">Voice Recognition</h3>
-            <p className="text-muted-foreground">Speak naturally and get accurate text transcriptions instantly.</p>
-          </Card>
-
-          <Card className="p-6 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
-            <Volume2 className="h-12 w-12 mb-4 text-primary" />
-            <h3 className="text-xl font-semibold mb-2">Natural Voice</h3>
-            <p className="text-muted-foreground">Listen to human-like voice responses powered by ElevenLabs.</p>
-          </Card>
-
-          <Card className="p-6 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
-            <Sparkles className="h-12 w-12 mb-4 text-primary" />
-            <h3 className="text-xl font-semibold mb-2">Smart Responses</h3>
-            <p className="text-muted-foreground">Get intelligent, context-aware answers powered by GPT-4.</p>
-          </Card>
         </div>
       </div>
     </div>
