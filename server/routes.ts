@@ -37,8 +37,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               role: message.role as "user",
               content: message.content 
             }
-          ],
-          response_format: { type: "json_object" },
+          ]
         });
 
         const aiMessage = chatResponseSchema.parse({
