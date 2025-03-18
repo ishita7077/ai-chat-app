@@ -1,25 +1,18 @@
-import type { Express } from "express";
+import { type Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import OpenAI from "openai";
 import { insertMessageSchema, chatResponseSchema } from "@shared/schema";
 import { z } from "zod";
-import elevenlabs from 'elevenlabs-node';
+import Voice from 'elevenlabs-node';
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // Initialize ElevenLabs client
-let voice;
-try {
-  voice = elevenlabs({
-    apiKey: process.env.ELEVENLABS_API_KEY
-  });
-  console.log('ElevenLabs client initialized successfully');
-} catch (error) {
-  console.error('Failed to initialize ElevenLabs client:', error);
-  throw error;
-}
+const voice = new Voice({
+  apiKey: process.env.ELEVENLABS_API_KEY
+});
 
 // Rachel voice - one of the most natural-sounding voices
 const VOICE_ID = "21m00Tcm4TlvDq8ikWAM";
@@ -41,20 +34,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       console.log('Generating audio with ElevenLabs...');
-      // Generate audio using ElevenLabs with optimized settings for natural speech
-      const audioResponse = await voice.generate(VOICE_ID, {
-        text,
-        model_id: 'eleven_multilingual_v2',
-        voice_settings: {
-          stability: 0.30,           // Lower stability for more natural variation
-          similarity_boost: 0.80,     // Higher similarity for consistent voice
-          style: 1,                  // Increased speaking style variation
-          use_speaker_boost: true    // Enhanced clarity
-        }
-      }).catch(error => {
-        console.error('ElevenLabs API error:', error);
-        throw error;
-      });
+      const audioResponse = await voice.textToSpeech(text, VOICE_ID);
 
       if (!audioResponse) {
         throw new Error('No audio response received from ElevenLabs');
