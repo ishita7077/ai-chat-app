@@ -12,7 +12,7 @@ export class SpeechHandler {
   private audio: HTMLAudioElement | null = null;
 
   // Maximum number of characters for TTS to prevent quota errors
-  private readonly MAX_TTS_CHARS = 65;
+  private readonly MAX_TTS_CHARS = 300;
 
   constructor() {
     if ('webkitSpeechRecognition' in window) {
@@ -87,11 +87,22 @@ export class SpeechHandler {
         this.audio?.pause();
       }
 
-      // Get first sentence and ensure it's not too long
-      const firstSentence = text.split(/[.!?]+/)[0] + ".";
-      let textToSpeak = firstSentence.length <= this.MAX_TTS_CHARS 
-        ? firstSentence 
-        : firstSentence.substring(0, this.MAX_TTS_CHARS - 3) + '...';
+      // Get first few sentences that fit within the character limit
+      const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
+      let textToSpeak = '';
+
+      for (const sentence of sentences) {
+        if ((textToSpeak + sentence).length <= this.MAX_TTS_CHARS) {
+          textToSpeak += sentence;
+        } else {
+          break;
+        }
+      }
+
+      // If still too long, take just the first sentence
+      if (textToSpeak.length > this.MAX_TTS_CHARS) {
+        textToSpeak = sentences[0].substring(0, this.MAX_TTS_CHARS - 3) + '...';
+      }
 
       this.isSpeaking = true;
 
