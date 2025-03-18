@@ -49,9 +49,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           text,
           model_id: "eleven_multilingual_v2",
           voice_settings: {
-            stability: 0.4,           // Lower stability for faster processing
-            similarity_boost: 0.4,    // Lower similarity for faster processing
-            optimize_streaming_latency: 3  // Optimize for lower latency
+            stability: 0.3,           // Lower stability for faster processing
+            similarity_boost: 0.3,    // Lower similarity for faster processing
+            optimize_streaming_latency: 4  // Maximum optimization for latency
           }
         })
       });
