@@ -51,12 +51,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
           style: 1,                  // Increased speaking style variation
           use_speaker_boost: true    // Enhanced clarity
         }
+      }).catch(error => {
+        console.error('ElevenLabs API error:', error);
+        throw error;
       });
+
+      if (!audioResponse) {
+        throw new Error('No audio response received from ElevenLabs');
+      }
 
       console.log('Audio generated successfully, sending response');
       // Send audio back to client
       res.set('Content-Type', 'audio/mpeg');
-      res.send(Buffer.from(audioResponse));
+      const audioBuffer = Buffer.from(audioResponse);
+      if (!audioBuffer.length) {
+        throw new Error('Empty audio buffer received');
+      }
+      res.send(audioBuffer);
     } catch (error) {
       console.error("Error generating speech:", error);
       res.status(500).json({ 
