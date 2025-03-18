@@ -142,7 +142,7 @@ export default function Home() {
               size="icon"
               onClick={() => setIsAudioEnabled(!isAudioEnabled)}
               title={isAudioEnabled ? "Mute voice responses" : "Enable voice responses"}
-              className="transition-transform hover:scale-105"
+              className="control-button"
             >
               {isAudioEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
             </Button>
@@ -151,7 +151,7 @@ export default function Home() {
               size="icon"
               onClick={toggleConversationMode}
               title={isConversationMode ? "Disable conversation mode" : "Enable conversation mode"}
-              className="transition-transform hover:scale-105"
+              className="control-button"
             >
               <MessageSquare className="h-4 w-4" />
             </Button>
@@ -159,7 +159,7 @@ export default function Home() {
               variant="outline"
               size="icon"
               onClick={() => clearChat.mutate()}
-              className="transition-transform hover:scale-105"
+              className="control-button"
             >
               <Trash2 className="h-4 w-4" />
             </Button>
@@ -222,7 +222,7 @@ export default function Home() {
             size="icon"
             onClick={toggleListening}
             disabled={!speechHandler.isSupported() || sendMessage.isPending}
-            className={`mic-button transition-transform hover:scale-105 ${isListening ? 'active' : ''}`}
+            className={`mic-button ${isListening ? 'active' : ''}`}
           >
             {isListening ? (
               <MicOff className="h-4 w-4" />
@@ -233,7 +233,7 @@ export default function Home() {
           <Button 
             type="submit" 
             disabled={!input.trim() || sendMessage.isPending || isConversationMode}
-            className="bg-primary/90 hover:bg-primary transition-colors"
+            className="send-button bg-primary/90"
           >
             <Send className="h-4 w-4" />
           </Button>
