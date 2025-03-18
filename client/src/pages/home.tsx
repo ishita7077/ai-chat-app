@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -8,28 +8,28 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Mic, MicOff, Send, Trash2, Volume2, VolumeX } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { speechHandler } from "@/lib/speech";
-import { WaveformVisualizer } from "@/components/WaveformVisualizer";
 import type { Message } from "@shared/schema";
 
 export default function Home() {
   const [input, setInput] = useState("");
   const [isListening, setIsListening] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
-  const [currentAudioUrl, setCurrentAudioUrl] = useState<string | null>(null);
   const { toast } = useToast();
 
   const { data: messages = [], isLoading } = useQuery<Message[]>({
     queryKey: ["/api/messages"],
   });
 
-  useEffect(() => {
-    speechHandler.setPlayingStateListener(setIsSpeaking);
-    speechHandler.setAudioUrlListener(setCurrentAudioUrl);
-  }, []);
-
   const sendMessage = useMutation({
     mutationFn: async (content: string) => {
+      if (content.length > 500) {
+        toast({
+          variant: "warning",
+          title: "Message too long",
+          description: "Please shorten your message to under 500 characters.",
+        });
+        return;
+      }
       const res = await apiRequest("POST", "/api/messages", {
         role: "user",
         content,
@@ -47,11 +47,19 @@ export default function Home() {
       }
     },
     onError: (error) => {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message,
-      });
+      if (error.message.includes("quota")) {
+        toast({
+          variant: "destructive",
+          title: "Quota Exceeded",
+          description: "You've reached your ElevenLabs usage quota. Please try again later.",
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: error.message,
+        });
+      }
     },
   });
 
@@ -159,16 +167,6 @@ export default function Home() {
             </div>
           )}
         </ScrollArea>
-
-        {isSpeaking && currentAudioUrl && (
-          <div className="mt-4 mb-2">
-            <WaveformVisualizer
-              audioUrl={currentAudioUrl}
-              isPlaying={isSpeaking}
-              onFinish={() => setIsSpeaking(false)}
-            />
-          </div>
-        )}
 
         <form onSubmit={handleSubmit} className="flex gap-2 mt-4">
           <Input
