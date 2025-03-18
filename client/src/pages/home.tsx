@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -8,17 +8,25 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Mic, MicOff, Send, Trash2, Volume2, VolumeX } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { speechHandler } from "@/lib/speech";
+import { WaveformVisualizer } from "@/components/WaveformVisualizer";
 import type { Message } from "@shared/schema";
 
 export default function Home() {
   const [input, setInput] = useState("");
   const [isListening, setIsListening] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(true);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isAudioEnabled, setIsAudioEnabled] = useState(true);
+  const [currentAudioUrl, setCurrentAudioUrl] = useState<string | null>(null);
   const { toast } = useToast();
 
   const { data: messages = [], isLoading } = useQuery<Message[]>({
     queryKey: ["/api/messages"],
   });
+
+  useEffect(() => {
+    speechHandler.setPlayingStateListener(setIsSpeaking);
+    speechHandler.setAudioUrlListener(setCurrentAudioUrl);
+  }, []);
 
   const sendMessage = useMutation({
     mutationFn: async (content: string) => {
@@ -33,7 +41,7 @@ export default function Home() {
       setInput("");
 
       // Speak the AI's response if speech is enabled
-      if (isSpeaking && data.length > 1) {
+      if (isAudioEnabled && data.length > 1) {
         const aiResponse = data[1].content;
         speechHandler.speak(aiResponse, "ThT5KcBeYPX3keUQqHPh"); // Use Nicole's voice
       }
@@ -94,10 +102,10 @@ export default function Home() {
             <Button
               variant="outline"
               size="icon"
-              onClick={() => setIsSpeaking(!isSpeaking)}
-              title={isSpeaking ? "Mute voice responses" : "Enable voice responses"}
+              onClick={() => setIsAudioEnabled(!isAudioEnabled)}
+              title={isAudioEnabled ? "Mute voice responses" : "Enable voice responses"}
             >
-              {isSpeaking ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+              {isAudioEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
             </Button>
             <Button
               variant="outline"
@@ -129,7 +137,7 @@ export default function Home() {
                         ? "bg-primary text-primary-foreground"
                         : "bg-muted"
                     }`}
-                    onClick={() => message.role === "assistant" && isSpeaking && speechHandler.speak(message.content, "ThT5KcBeYPX3keUQqHPh")}
+                    onClick={() => message.role === "assistant" && isAudioEnabled && speechHandler.speak(message.content, "ThT5KcBeYPX3keUQqHPh")}
                     style={{ cursor: message.role === "assistant" ? "pointer" : "default" }}
                     title={message.role === "assistant" ? "Click to hear this response" : undefined}
                   >
@@ -151,6 +159,16 @@ export default function Home() {
             </div>
           )}
         </ScrollArea>
+
+        {isSpeaking && currentAudioUrl && (
+          <div className="mt-4 mb-2">
+            <WaveformVisualizer
+              audioUrl={currentAudioUrl}
+              isPlaying={isSpeaking}
+              onFinish={() => setIsSpeaking(false)}
+            />
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="flex gap-2 mt-4">
           <Input

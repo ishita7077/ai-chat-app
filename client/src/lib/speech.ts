@@ -9,6 +9,8 @@ export class SpeechHandler {
   private isSpeaking: boolean = false;
   private audio: HTMLAudioElement | null = null;
   private currentAudioUrl: string | null = null;
+  private onPlayingStateChange: ((isPlaying: boolean) => void) | null = null;
+  private onAudioUrlChange: ((url: string | null) => void) | null = null;
 
   constructor() {
     if ('webkitSpeechRecognition' in window) {
@@ -28,23 +30,33 @@ export class SpeechHandler {
     this.audio.addEventListener('ended', () => {
       console.log('Audio playback ended');
       this.isSpeaking = false;
+      this.onPlayingStateChange?.(false);
       if (this.currentAudioUrl) {
         URL.revokeObjectURL(this.currentAudioUrl);
         this.currentAudioUrl = null;
+        this.onAudioUrlChange?.(null);
       }
     });
 
     this.audio.addEventListener('error', (e) => {
       console.error('Audio playback error:', e);
       this.isSpeaking = false;
+      this.onPlayingStateChange?.(false);
       if (this.currentAudioUrl) {
         URL.revokeObjectURL(this.currentAudioUrl);
         this.currentAudioUrl = null;
+        this.onAudioUrlChange?.(null);
       }
     });
 
     this.audio.addEventListener('play', () => {
       console.log('Audio playback started');
+      this.onPlayingStateChange?.(true);
+    });
+
+    this.audio.addEventListener('pause', () => {
+      console.log('Audio playback paused');
+      this.onPlayingStateChange?.(false);
     });
   }
 
@@ -95,6 +107,7 @@ export class SpeechHandler {
         if (this.currentAudioUrl) {
           URL.revokeObjectURL(this.currentAudioUrl);
           this.currentAudioUrl = null;
+          this.onAudioUrlChange?.(null);
         }
       }
 
@@ -119,6 +132,7 @@ export class SpeechHandler {
       console.log('Audio response received, creating blob URL');
       const audioBlob = await response.blob();
       this.currentAudioUrl = URL.createObjectURL(audioBlob);
+      this.onAudioUrlChange?.(this.currentAudioUrl);
 
       if (this.audio) {
         console.log('Starting audio playback');
@@ -128,9 +142,11 @@ export class SpeechHandler {
     } catch (err) {
       console.error('Error with speech synthesis:', err);
       this.isSpeaking = false;
+      this.onPlayingStateChange?.(false);
       if (this.currentAudioUrl) {
         URL.revokeObjectURL(this.currentAudioUrl);
         this.currentAudioUrl = null;
+        this.onAudioUrlChange?.(null);
       }
       throw err;
     }
@@ -138,6 +154,14 @@ export class SpeechHandler {
 
   isSupported(): boolean {
     return this.recognition !== null;
+  }
+
+  setPlayingStateListener(callback: (isPlaying: boolean) => void) {
+    this.onPlayingStateChange = callback;
+  }
+
+  setAudioUrlListener(callback: (url: string | null) => void) {
+    this.onAudioUrlChange = callback;
   }
 }
 
