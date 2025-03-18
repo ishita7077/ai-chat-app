@@ -18,6 +18,7 @@ const AVAILABLE_VOICES = [
   { id: "ZQe5CZNOzWyzPSCn5RYz", name: "Josh" }
 ];
 
+// Add TTS endpoint with direct API call
 export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/messages", async (_req, res) => {
     const messages = await storage.getMessages();
@@ -29,18 +30,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(AVAILABLE_VOICES);
   });
 
-  // Add TTS endpoint with direct API call
   app.post("/api/tts", async (req, res) => {
     try {
-      console.log('TTS request received:', req.body);
       const { text, voiceId = "21m00Tcm4TlvDq8ikWAM" } = req.body;
 
       if (!text) {
-        console.warn('TTS request missing text');
         return res.status(400).json({ message: "Text is required" });
       }
-
-      console.log('Making direct API call to ElevenLabs...');
 
       const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
         method: 'POST',
@@ -53,23 +49,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           text,
           model_id: "eleven_multilingual_v2",
           voice_settings: {
-            stability: 0.5,
-            similarity_boost: 0.5
+            stability: 0.4,           // Lower stability for faster processing
+            similarity_boost: 0.4,    // Lower similarity for faster processing
+            optimize_streaming_latency: 3  // Optimize for lower latency
           }
         })
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('ElevenLabs API error:', {
-          status: response.status,
-          statusText: response.statusText,
-          body: errorText
-        });
         throw new Error(`ElevenLabs API error: ${response.status} ${errorText}`);
       }
 
-      console.log('Audio generated successfully, sending response');
       const audioBuffer = await response.arrayBuffer();
 
       res.set({
@@ -80,9 +71,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.send(Buffer.from(audioBuffer));
     } catch (error) {
       console.error("Error generating speech:", error);
-      if (error instanceof Error) {
-        console.error('Error stack:', error.stack);
-      }
       res.status(500).json({ 
         message: "Failed to generate speech",
         error: error instanceof Error ? error.message : String(error)

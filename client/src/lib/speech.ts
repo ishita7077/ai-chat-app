@@ -27,7 +27,6 @@ export class SpeechHandler {
 
     this.audio = new Audio();
     this.audio.addEventListener('ended', () => {
-      console.log('Audio playback ended');
       this.isSpeaking = false;
     });
 
@@ -37,7 +36,7 @@ export class SpeechHandler {
     });
 
     this.audio.addEventListener('play', () => {
-      console.log('Audio playback started');
+      this.isSpeaking = true;
     });
   }
 
@@ -83,7 +82,6 @@ export class SpeechHandler {
   async speak(text: string, voiceId?: string) {
     try {
       if (this.isSpeaking) {
-        console.log('Stopping current audio playback');
         this.audio?.pause();
       }
 
@@ -93,7 +91,6 @@ export class SpeechHandler {
       }
 
       this.isSpeaking = true;
-      console.log('Requesting audio from server');
 
       const response = await fetch('/api/tts', {
         method: 'POST',
@@ -114,12 +111,10 @@ export class SpeechHandler {
         throw new Error(`Failed to get audio: ${response.status} ${response.statusText}`);
       }
 
-      console.log('Audio response received, creating blob URL');
       const audioBlob = await response.blob();
       const audioUrl = URL.createObjectURL(audioBlob);
 
       if (this.audio) {
-        console.log('Starting audio playback');
         this.audio.src = audioUrl;
         await this.audio.play();
       }
