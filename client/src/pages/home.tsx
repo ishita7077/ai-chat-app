@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Mic, MicOff, Send, Trash2 } from "lucide-react";
+import { Mic, MicOff, Send, Trash2, Volume2, VolumeX } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { speechHandler } from "@/lib/speech";
 import type { Message } from "@shared/schema";
@@ -13,6 +13,7 @@ import type { Message } from "@shared/schema";
 export default function Home() {
   const [input, setInput] = useState("");
   const [isListening, setIsListening] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(true);
   const { toast } = useToast();
 
   const { data: messages = [], isLoading } = useQuery<Message[]>({
@@ -27,9 +28,15 @@ export default function Home() {
       });
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
       setInput("");
+
+      // Speak the AI's response if speech is enabled
+      if (isSpeaking && data.length > 1) {
+        const aiResponse = data[1].content;
+        speechHandler.speak(aiResponse);
+      }
     },
     onError: (error) => {
       toast({
@@ -83,13 +90,23 @@ export default function Home() {
       <Card className="flex-1 flex flex-col p-4 mb-4">
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-bold">AI Chat Assistant</h1>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => clearChat.mutate()}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setIsSpeaking(!isSpeaking)}
+              title={isSpeaking ? "Mute voice responses" : "Enable voice responses"}
+            >
+              {isSpeaking ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => clearChat.mutate()}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
 
         <ScrollArea className="flex-1 pr-4">
@@ -112,6 +129,9 @@ export default function Home() {
                         ? "bg-primary text-primary-foreground"
                         : "bg-muted"
                     }`}
+                    onClick={() => message.role === "assistant" && isSpeaking && speechHandler.speak(message.content)}
+                    style={{ cursor: message.role === "assistant" ? "pointer" : "default" }}
+                    title={message.role === "assistant" ? "Click to hear this response" : undefined}
                   >
                     {message.content}
                   </div>

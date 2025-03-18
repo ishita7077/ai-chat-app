@@ -6,6 +6,7 @@ declare global {
 
 export class SpeechHandler {
   private recognition: SpeechRecognition | null = null;
+  private synthesis: SpeechSynthesis;
 
   constructor() {
     if ('webkitSpeechRecognition' in window) {
@@ -19,6 +20,7 @@ export class SpeechHandler {
         this.recognition = null;
       }
     }
+    this.synthesis = window.speechSynthesis;
   }
 
   startListening(onResult: (text: string) => void, onError: (error: string) => void) {
@@ -55,8 +57,29 @@ export class SpeechHandler {
     }
   }
 
+  speak(text: string) {
+    if (!this.synthesis) return;
+
+    // Cancel any ongoing speech
+    this.synthesis.cancel();
+
+    try {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 1;
+      utterance.pitch = 1;
+      utterance.lang = 'en-US';
+      this.synthesis.speak(utterance);
+    } catch (err) {
+      console.error('Error with speech synthesis:', err);
+    }
+  }
+
   isSupported(): boolean {
     return this.recognition !== null;
+  }
+
+  isSpeechSupported(): boolean {
+    return typeof window.speechSynthesis !== 'undefined';
   }
 }
 
