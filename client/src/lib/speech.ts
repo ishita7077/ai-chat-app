@@ -11,9 +11,6 @@ export class SpeechHandler {
   private isSpeaking: boolean = false;
   private audio: HTMLAudioElement | null = null;
 
-  // Maximum number of characters for TTS to prevent quota errors
-  private readonly MAX_TTS_CHARS = 300;
-
   constructor() {
     if ('webkitSpeechRecognition' in window) {
       try {
@@ -87,23 +84,6 @@ export class SpeechHandler {
         this.audio?.pause();
       }
 
-      // Get first few sentences that fit within the character limit
-      const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
-      let textToSpeak = '';
-
-      for (const sentence of sentences) {
-        if ((textToSpeak + sentence).length <= this.MAX_TTS_CHARS) {
-          textToSpeak += sentence;
-        } else {
-          break;
-        }
-      }
-
-      // If still too long, take just the first sentence
-      if (textToSpeak.length > this.MAX_TTS_CHARS) {
-        textToSpeak = sentences[0].substring(0, this.MAX_TTS_CHARS - 3) + '...';
-      }
-
       this.isSpeaking = true;
 
       const response = await fetch('/api/tts', {
@@ -112,12 +92,16 @@ export class SpeechHandler {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
-          text: textToSpeak,
+          text,
           voiceId 
         }),
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        if (errorText.includes('quota_exceeded')) {
+          throw new Error('Message is too long for voice synthesis. Please try a shorter message or disable voice responses.');
+        }
         throw new Error('Voice synthesis unavailable. Please try again later.');
       }
 
