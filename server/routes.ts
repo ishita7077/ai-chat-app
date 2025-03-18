@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import OpenAI from "openai";
 import { insertMessageSchema, chatResponseSchema } from "@shared/schema";
 import { z } from "zod";
-import elevenlabs from 'elevenlabs-node';
+import { ElevenLabs } from 'elevenlabs-node';
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -12,7 +12,7 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 // Initialize ElevenLabs client
 let voice;
 try {
-  voice = new elevenlabs({
+  voice = new ElevenLabs({
     apiKey: process.env.ELEVENLABS_API_KEY
   });
   console.log('ElevenLabs client initialized successfully');
@@ -42,8 +42,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log('Generating audio with ElevenLabs...');
       // Generate audio using ElevenLabs with optimized settings for natural speech
-      const audioResponse = await voice.textToSpeech(VOICE_ID, {
+      const audioResponse = await voice.textToSpeech({
         text,
+        voice_id: VOICE_ID,
         model_id: 'eleven_multilingual_v2',
         voice_settings: {
           stability: 0.30,           // Lower stability for more natural variation
