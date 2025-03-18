@@ -7,13 +7,14 @@ declare global {
 export class SpeechHandler {
   private recognition: SpeechRecognition | null = null;
   private synthesis: SpeechSynthesis;
+  private isSpeaking: boolean = false;
 
   constructor() {
     if ('webkitSpeechRecognition' in window) {
       try {
         this.recognition = new window.webkitSpeechRecognition();
-        this.recognition.continuous = true; // Enable continuous recognition
-        this.recognition.interimResults = true; // Enable interim results
+        this.recognition.continuous = false; // Disable continuous recognition
+        this.recognition.interimResults = false; // Only get final results
         this.recognition.lang = 'en-US';
       } catch (err) {
         console.error('Failed to initialize speech recognition:', err);
@@ -23,22 +24,23 @@ export class SpeechHandler {
     this.synthesis = window.speechSynthesis;
   }
 
-  startListening(
-    onResult: (text: string, isFinal: boolean) => void,
-    onError: (error: string) => void
-  ) {
+  startListening(onResult: (text: string) => void, onError: (error: string) => void) {
     if (!this.recognition) {
       onError("Speech recognition not supported in this browser");
       return;
     }
 
+    if (this.isSpeaking) {
+      onError("Please wait for AI to finish speaking");
+      return;
+    }
+
     try {
       this.recognition.onresult = (event: SpeechRecognitionEvent) => {
-        const result = event.results[event.results.length - 1];
-        const transcript = result[0].transcript;
-        const isFinal = result.isFinal;
-
-        onResult(transcript, isFinal);
+        if (event.results.length > 0) {
+          const transcript = event.results[0][0].transcript;
+          onResult(transcript);
+        }
       };
 
       this.recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
@@ -72,9 +74,17 @@ export class SpeechHandler {
       utterance.rate = 1;
       utterance.pitch = 1;
       utterance.lang = 'en-US';
+
+      this.isSpeaking = true;
+
+      utterance.onend = () => {
+        this.isSpeaking = false;
+      };
+
       this.synthesis.speak(utterance);
     } catch (err) {
       console.error('Error with speech synthesis:', err);
+      this.isSpeaking = false;
     }
   }
 

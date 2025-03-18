@@ -14,7 +14,6 @@ export default function Home() {
   const [input, setInput] = useState("");
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(true);
-  const [interimTranscript, setInterimTranscript] = useState("");
   const { toast } = useToast();
 
   const { data: messages = [], isLoading } = useQuery<Message[]>({
@@ -32,7 +31,6 @@ export default function Home() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
       setInput("");
-      setInterimTranscript("");
 
       // Speak the AI's response if speech is enabled
       if (isSpeaking && data.length > 1) {
@@ -68,21 +66,14 @@ export default function Home() {
     if (isListening) {
       speechHandler.stopListening();
       setIsListening(false);
-      setInterimTranscript("");
     } else {
       speechHandler.startListening(
-        (text, isFinal) => {
-          if (isFinal) {
-            setInput(text);
-            sendMessage.mutate(text);
-            setInterimTranscript("");
-          } else {
-            setInterimTranscript(text);
-          }
+        (text) => {
+          setInput(text);
+          sendMessage.mutate(text);
         },
         (error) => {
           setIsListening(false);
-          setInterimTranscript("");
           toast({ 
             variant: "destructive", 
             title: "Speech Recognition Error", 
@@ -146,13 +137,6 @@ export default function Home() {
                   </div>
                 </div>
               ))}
-              {interimTranscript && (
-                <div className="flex justify-end">
-                  <div className="max-w-[80%] p-3 rounded-lg bg-primary/50 text-primary-foreground">
-                    {interimTranscript}
-                  </div>
-                </div>
-              )}
               {sendMessage.isPending && (
                 <div className="flex justify-start">
                   <div className="max-w-[80%] p-3 rounded-lg bg-muted">
