@@ -42,8 +42,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log('Generating audio with ElevenLabs...');
       // Generate audio using ElevenLabs with optimized settings for natural speech
-      const audioResponse = await voice.generate(text, {
-        voice_id: VOICE_ID,
+      const audioResponse = await voice.generate(VOICE_ID, {
+        text,
         model_id: 'eleven_multilingual_v2',
         voice_settings: {
           stability: 0.30,           // Lower stability for more natural variation
