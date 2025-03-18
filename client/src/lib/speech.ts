@@ -1,5 +1,3 @@
-import Voice from 'elevenlabs-node';
-
 declare global {
   interface Window {
     webkitSpeechRecognition: typeof SpeechRecognition;
@@ -10,7 +8,7 @@ export class SpeechHandler {
   private recognition: SpeechRecognition | null = null;
   private isSpeaking: boolean = false;
   private audio: HTMLAudioElement | null = null;
-  private voice: Voice;
+  private currentAudioUrl: string | null = null;
 
   constructor() {
     if ('webkitSpeechRecognition' in window) {
@@ -28,7 +26,25 @@ export class SpeechHandler {
     // Initialize audio element for playing ElevenLabs audio
     this.audio = new Audio();
     this.audio.addEventListener('ended', () => {
+      console.log('Audio playback ended');
       this.isSpeaking = false;
+      if (this.currentAudioUrl) {
+        URL.revokeObjectURL(this.currentAudioUrl);
+        this.currentAudioUrl = null;
+      }
+    });
+
+    this.audio.addEventListener('error', (e) => {
+      console.error('Audio playback error:', e);
+      this.isSpeaking = false;
+      if (this.currentAudioUrl) {
+        URL.revokeObjectURL(this.currentAudioUrl);
+        this.currentAudioUrl = null;
+      }
+    });
+
+    this.audio.addEventListener('play', () => {
+      console.log('Audio playback started');
     });
   }
 
@@ -73,15 +89,18 @@ export class SpeechHandler {
 
   async speak(text: string) {
     try {
-      this.isSpeaking = true;
-
-      // Stop any current playback
-      if (this.audio) {
-        this.audio.pause();
-        this.audio.currentTime = 0;
+      if (this.isSpeaking) {
+        console.log('Stopping current audio playback');
+        this.audio?.pause();
+        if (this.currentAudioUrl) {
+          URL.revokeObjectURL(this.currentAudioUrl);
+          this.currentAudioUrl = null;
+        }
       }
 
-      // Get audio stream from server
+      this.isSpeaking = true;
+      console.log('Requesting audio from server');
+
       const response = await fetch('/api/tts', {
         method: 'POST',
         headers: {
@@ -91,20 +110,26 @@ export class SpeechHandler {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to get audio from server');
+        throw new Error(`Failed to get audio: ${response.status} ${response.statusText}`);
       }
 
+      console.log('Audio response received, creating blob URL');
       const audioBlob = await response.blob();
-      const audioUrl = URL.createObjectURL(audioBlob);
+      this.currentAudioUrl = URL.createObjectURL(audioBlob);
 
       if (this.audio) {
-        this.audio.src = audioUrl;
+        console.log('Starting audio playback');
+        this.audio.src = this.currentAudioUrl;
         await this.audio.play();
-        URL.revokeObjectURL(audioUrl);
       }
     } catch (err) {
       console.error('Error with speech synthesis:', err);
       this.isSpeaking = false;
+      if (this.currentAudioUrl) {
+        URL.revokeObjectURL(this.currentAudioUrl);
+        this.currentAudioUrl = null;
+      }
+      throw err;
     }
   }
 

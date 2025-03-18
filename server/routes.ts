@@ -4,18 +4,25 @@ import { storage } from "./storage";
 import OpenAI from "openai";
 import { insertMessageSchema, chatResponseSchema } from "@shared/schema";
 import { z } from "zod";
-import Voice from 'elevenlabs-node';
+import elevenlabs from 'elevenlabs-node';
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-// Initialize ElevenLabs
-const voice = new Voice({
-  apiKey: process.env.ELEVENLABS_API_KEY
-});
+// Initialize ElevenLabs client
+let voice;
+try {
+  voice = new elevenlabs({
+    apiKey: process.env.ELEVENLABS_API_KEY
+  });
+  console.log('ElevenLabs client initialized successfully');
+} catch (error) {
+  console.error('Failed to initialize ElevenLabs client:', error);
+  throw error;
+}
 
-// Select a voice ID from ElevenLabs (you can choose different voices)
-const VOICE_ID = "21m00Tcm4TlvDq8ikWAM"; // Default voice ID - "Rachel"
+// Rachel voice - one of the most natural-sounding voices
+const VOICE_ID = "21m00Tcm4TlvDq8ikWAM";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/messages", async (_req, res) => {
@@ -25,29 +32,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/tts", async (req, res) => {
     try {
+      console.log('TTS request received:', req.body);
       const { text } = req.body;
+
       if (!text) {
+        console.warn('TTS request missing text');
         return res.status(400).json({ message: "Text is required" });
       }
 
-      // Generate audio using ElevenLabs
-      const audioBuffer = await voice.textToSpeech(VOICE_ID, {
+      console.log('Generating audio with ElevenLabs...');
+      // Generate audio using ElevenLabs with optimized settings for natural speech
+      const audioResponse = await voice.textToSpeech(VOICE_ID, {
         text,
-        model_id: "eleven_monolingual_v1",
+        model_id: 'eleven_multilingual_v2',
         voice_settings: {
-          stability: 0.5,
-          similarity_boost: 0.75,
-          style: 0.0,
-          use_speaker_boost: true
+          stability: 0.30,           // Lower stability for more natural variation
+          similarity_boost: 0.80,     // Higher similarity for consistent voice
+          style: 1,                  // Increased speaking style variation
+          use_speaker_boost: true    // Enhanced clarity
         }
       });
 
+      console.log('Audio generated successfully, sending response');
       // Send audio back to client
       res.set('Content-Type', 'audio/mpeg');
-      res.send(Buffer.from(audioBuffer));
+      res.send(Buffer.from(audioResponse));
     } catch (error) {
       console.error("Error generating speech:", error);
-      res.status(500).json({ message: "Failed to generate speech" });
+      res.status(500).json({ 
+        message: "Failed to generate speech",
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
   });
 
