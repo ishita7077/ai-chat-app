@@ -117,6 +117,17 @@ export default function Home() {
                   </div>
                 </div>
               ))}
+              {sendMessage.isPending && (
+                <div className="flex justify-start">
+                  <div className="max-w-[80%] p-3 rounded-lg bg-muted">
+                    <div className="flex items-center gap-2">
+                      <div className="animate-pulse w-2 h-2 bg-foreground rounded-full"></div>
+                      <div className="animate-pulse w-2 h-2 bg-foreground rounded-full delay-150"></div>
+                      <div className="animate-pulse w-2 h-2 bg-foreground rounded-full delay-300"></div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </ScrollArea>
@@ -125,7 +136,7 @@ export default function Home() {
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Type your message..."
+            placeholder={sendMessage.isPending ? "AI is thinking..." : "Type your message..."}
             className="flex-1"
             disabled={sendMessage.isPending}
           />
