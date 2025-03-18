@@ -8,6 +8,7 @@ export class SpeechHandler {
   private recognition: SpeechRecognition | null = null;
   private synthesis: SpeechSynthesis;
   private isSpeaking: boolean = false;
+  private voices: SpeechSynthesisVoice[] = [];
 
   constructor() {
     if ('webkitSpeechRecognition' in window) {
@@ -22,6 +23,56 @@ export class SpeechHandler {
       }
     }
     this.synthesis = window.speechSynthesis;
+
+    // Initialize voices
+    this.loadVoices();
+    this.synthesis.onvoiceschanged = () => {
+      this.loadVoices();
+    };
+  }
+
+  private loadVoices() {
+    this.voices = this.synthesis.getVoices();
+  }
+
+  private formatTextForNaturalSpeech(text: string): string {
+    // Add periods if missing at the end of sentences
+    text = text.replace(/([a-z])\s+([A-Z])/g, '$1. $2');
+
+    // Ensure proper spacing after punctuation
+    text = text.replace(/([.,!?])([A-Za-z])/g, '$1 $2');
+
+    // Add slight pauses for commas and longer pauses for periods
+    text = text.replace(/,/g, ', ');
+    text = text.replace(/\./g, '... ');
+
+    return text;
+  }
+
+  private selectBestVoice(): SpeechSynthesisVoice | null {
+    const preferredVoices = [
+      { name: 'Samantha', score: 5 },      // MacOS (very natural)
+      { name: 'David', score: 4 },         // MacOS (natural male voice)
+      { name: 'Google UK English Female', score: 4 }, // Chrome (good quality)
+      { name: 'Microsoft Zira', score: 3 }, // Windows (decent)
+      { name: 'Google US English', score: 3 } // Chrome (backup)
+    ];
+
+    let bestVoice = null;
+    let highestScore = -1;
+
+    for (const voice of this.voices) {
+      if (!voice.lang.startsWith('en')) continue;
+
+      for (const pv of preferredVoices) {
+        if (voice.name.includes(pv.name) && pv.score > highestScore) {
+          bestVoice = voice;
+          highestScore = pv.score;
+        }
+      }
+    }
+
+    return bestVoice || this.voices.find(v => v.lang.startsWith('en')) || null;
   }
 
   startListening(onResult: (text: string) => void, onError: (error: string) => void) {
@@ -70,27 +121,18 @@ export class SpeechHandler {
     this.synthesis.cancel();
 
     try {
-      const utterance = new SpeechSynthesisUtterance(text);
+      const formattedText = this.formatTextForNaturalSpeech(text);
+      const utterance = new SpeechSynthesisUtterance(formattedText);
 
-      // Get available voices and select a more natural-sounding one
-      const voices = this.synthesis.getVoices();
-      const preferredVoice = voices.find(voice =>
-        voice.lang.startsWith('en') && (
-          voice.name.includes('Samantha') || // MacOS
-          voice.name.includes('David') ||    // MacOS
-          voice.name.includes('Google UK English Female') || // Chrome
-          voice.name.includes('Microsoft Zira') // Windows
-        )
-      );
-
-      if (preferredVoice) {
-        utterance.voice = preferredVoice;
+      const selectedVoice = this.selectBestVoice();
+      if (selectedVoice) {
+        utterance.voice = selectedVoice;
       }
 
       // Adjust speech parameters for more natural sound
-      utterance.rate = 0.9; // Slightly slower than default
-      utterance.pitch = 1.1; // Slightly higher pitch
-      utterance.volume = 1.0;
+      utterance.rate = 0.85;     // Slightly slower for clarity
+      utterance.pitch = 1.05;    // Very slightly higher pitch
+      utterance.volume = 1.0;    // Full volume
       utterance.lang = 'en-US';
 
       this.isSpeaking = true;
