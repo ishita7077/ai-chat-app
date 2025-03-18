@@ -46,6 +46,15 @@ export class SpeechHandler {
     text = text.replace(/,/g, ', ');
     text = text.replace(/\./g, '... ');
 
+    // Add natural pauses after phrases
+    text = text.replace(/(\b(?:however|moreover|furthermore|additionally|therefore|consequently|meanwhile|nevertheless|although|otherwise|anyway|besides|still|yet|also|thus)\b)/gi, '... $1, ');
+
+    // Add emphasis to important words
+    text = text.replace(/(!important|!key|!emphasize|!note)/gi, '... ');
+
+    // Break long sentences into smaller chunks
+    text = text.replace(/(.{50,}?[.!?])\s+/g, '$1... ');
+
     return text;
   }
 
