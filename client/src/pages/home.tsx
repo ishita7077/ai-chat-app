@@ -9,15 +9,27 @@ import { Mic, MicOff, Send, Trash2, Volume2, VolumeX } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { speechHandler } from "@/lib/speech";
 import type { Message } from "@shared/schema";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function Home() {
   const [input, setInput] = useState("");
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(true);
+  const [selectedVoice, setSelectedVoice] = useState("21m00Tcm4TlvDq8ikWAM"); // Rachel voice by default
   const { toast } = useToast();
 
   const { data: messages = [], isLoading } = useQuery<Message[]>({
     queryKey: ["/api/messages"],
+  });
+
+  const { data: voices = [] } = useQuery({
+    queryKey: ["/api/voices"],
   });
 
   const sendMessage = useMutation({
@@ -35,7 +47,7 @@ export default function Home() {
       // Speak the AI's response if speech is enabled
       if (isSpeaking && data.length > 1) {
         const aiResponse = data[1].content;
-        speechHandler.speak(aiResponse);
+        speechHandler.speak(aiResponse, selectedVoice); // Pass selected voice ID
       }
     },
     onError: (error) => {
@@ -90,7 +102,22 @@ export default function Home() {
       <Card className="flex-1 flex flex-col p-4 mb-4">
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-bold">AI Chat Assistant</h1>
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
+            <Select
+              value={selectedVoice}
+              onValueChange={setSelectedVoice}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Select voice" />
+              </SelectTrigger>
+              <SelectContent>
+                {voices.map((voice) => (
+                  <SelectItem key={voice.id} value={voice.id}>
+                    {voice.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Button
               variant="outline"
               size="icon"

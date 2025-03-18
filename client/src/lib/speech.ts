@@ -87,7 +87,7 @@ export class SpeechHandler {
     }
   }
 
-  async speak(text: string) {
+  async speak(text: string, voiceId?: string) {
     try {
       if (this.isSpeaking) {
         console.log('Stopping current audio playback');
@@ -106,7 +106,10 @@ export class SpeechHandler {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ 
+          text,
+          voiceId 
+        }),
       });
 
       if (!response.ok) {

@@ -8,17 +8,32 @@ import { z } from "zod";
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+// Add available voices endpoint
+const AVAILABLE_VOICES = [
+  { id: "21m00Tcm4TlvDq8ikWAM", name: "Rachel" },
+  { id: "29vD33N1CtxCmqQRPOHJ", name: "Drew" },
+  { id: "D38z5RcWu1voky8WS1ja", name: "Clyde" },
+  { id: "jsCqWAovK2LkecY7zXl4", name: "Adam" },
+  { id: "ThT5KcBeYPX3keUQqHPh", name: "Nicole" },
+  { id: "ZQe5CZNOzWyzPSCn5RYz", name: "Josh" }
+];
+
 export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/messages", async (_req, res) => {
     const messages = await storage.getMessages();
     res.json(messages);
   });
 
+  // Add endpoint to get available voices
+  app.get("/api/voices", (_req, res) => {
+    res.json(AVAILABLE_VOICES);
+  });
+
   // Add TTS endpoint with direct API call
   app.post("/api/tts", async (req, res) => {
     try {
       console.log('TTS request received:', req.body);
-      const { text } = req.body;
+      const { text, voiceId = "21m00Tcm4TlvDq8ikWAM" } = req.body;
 
       if (!text) {
         console.warn('TTS request missing text');
@@ -27,7 +42,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log('Making direct API call to ElevenLabs...');
 
-      const response = await fetch('https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM', {
+      const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
         method: 'POST',
         headers: {
           'Accept': 'audio/mpeg',
