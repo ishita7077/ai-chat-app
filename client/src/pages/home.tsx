@@ -9,6 +9,7 @@ import { Mic, MicOff, Send, Trash2, Volume2, VolumeX, MessageSquare } from "luci
 import { useToast } from "@/hooks/use-toast";
 import { speechHandler } from "@/lib/speech";
 import type { Message } from "@shared/schema";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export default function Home() {
   const [input, setInput] = useState("");
@@ -133,9 +134,12 @@ export default function Home() {
     <div className="container mx-auto max-w-4xl p-4 h-screen flex flex-col">
       <Card className="chat-container flex-1 flex flex-col p-6 mb-4">
         <div className="flex justify-between items-center mb-6 pb-4 border-b">
-          <h1 className="text-2xl font-semibold bg-gradient-to-r from-primary/90 to-primary bg-clip-text text-transparent">
-            AI Chat Assistant
-          </h1>
+          <div className="flex items-center gap-4">
+            <h1 className="text-2xl font-semibold bg-gradient-to-r from-primary/90 to-primary bg-clip-text text-transparent">
+              AI Chat Assistant
+            </h1>
+            <ThemeToggle />
+          </div>
           <div className="flex gap-3">
             <Button
               variant="outline"
