@@ -13,8 +13,8 @@ export class SpeechHandler {
     if ('webkitSpeechRecognition' in window) {
       try {
         this.recognition = new window.webkitSpeechRecognition();
-        this.recognition.continuous = false; // Disable continuous recognition
-        this.recognition.interimResults = false; // Only get final results
+        this.recognition.continuous = false;
+        this.recognition.interimResults = false;
         this.recognition.lang = 'en-US';
       } catch (err) {
         console.error('Failed to initialize speech recognition:', err);
@@ -71,8 +71,26 @@ export class SpeechHandler {
 
     try {
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 1;
-      utterance.pitch = 1;
+
+      // Get available voices and select a more natural-sounding one
+      const voices = this.synthesis.getVoices();
+      const preferredVoice = voices.find(voice =>
+        voice.lang.startsWith('en') && (
+          voice.name.includes('Samantha') || // MacOS
+          voice.name.includes('David') ||    // MacOS
+          voice.name.includes('Google UK English Female') || // Chrome
+          voice.name.includes('Microsoft Zira') // Windows
+        )
+      );
+
+      if (preferredVoice) {
+        utterance.voice = preferredVoice;
+      }
+
+      // Adjust speech parameters for more natural sound
+      utterance.rate = 0.9; // Slightly slower than default
+      utterance.pitch = 1.1; // Slightly higher pitch
+      utterance.volume = 1.0;
       utterance.lang = 'en-US';
 
       this.isSpeaking = true;
@@ -81,7 +99,10 @@ export class SpeechHandler {
         this.isSpeaking = false;
       };
 
-      this.synthesis.speak(utterance);
+      // Add a small delay before speaking for more natural interaction
+      setTimeout(() => {
+        this.synthesis.speak(utterance);
+      }, 200);
     } catch (err) {
       console.error('Error with speech synthesis:', err);
       this.isSpeaking = false;
