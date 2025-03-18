@@ -4,17 +4,18 @@ import { storage } from "./storage";
 import OpenAI from "openai";
 import { insertMessageSchema, chatResponseSchema } from "@shared/schema";
 import { z } from "zod";
-import Voice from 'elevenlabs-node';
+import ElevenLabs from 'elevenlabs-node';
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // Initialize ElevenLabs client
-const voice = new Voice({
+console.log('Initializing ElevenLabs...');
+const voice = new ElevenLabs({
   apiKey: process.env.ELEVENLABS_API_KEY
 });
 
-// Rachel voice - one of the most natural-sounding voices
+// Rachel voice ID - one of the most natural-sounding voices
 const VOICE_ID = "21m00Tcm4TlvDq8ikWAM";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -23,6 +24,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(messages);
   });
 
+  // Add TTS endpoint with proper error handling
   app.post("/api/tts", async (req, res) => {
     try {
       console.log('TTS request received:', req.body);
@@ -33,27 +35,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Text is required" });
       }
 
+      console.log('Voice object type:', typeof voice);
+      console.log('Voice object methods:', Object.getOwnPropertyNames(Object.getPrototypeOf(voice)));
       console.log('Generating audio with ElevenLabs...');
-      const audioResponse = await voice.textToSpeech(text, VOICE_ID);
 
-      if (!audioResponse) {
+      const audioStream = await voice.generateAudio(text, {
+        voiceId: VOICE_ID,
+        modelId: 'eleven_multilingual_v2'
+      });
+
+      console.log('Audio response received, type:', typeof audioStream);
+
+      if (!audioStream) {
         throw new Error('No audio response received from ElevenLabs');
       }
 
       console.log('Audio generated successfully, sending response');
-      // Send audio back to client with correct MIME type
+      // Send audio back to client with correct MIME type and headers
       res.set({
         'Content-Type': 'audio/mpeg',
         'Transfer-Encoding': 'chunked'
       });
 
-      const audioBuffer = Buffer.from(audioResponse);
-      if (!audioBuffer.length) {
-        throw new Error('Empty audio buffer received');
-      }
-      res.send(audioBuffer);
+      res.send(audioStream);
     } catch (error) {
       console.error("Error generating speech:", error);
+      if (error instanceof Error) {
+        console.error('Error stack:', error.stack);
+      }
       res.status(500).json({ 
         message: "Failed to generate speech",
         error: error instanceof Error ? error.message : String(error)
