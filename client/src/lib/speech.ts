@@ -9,67 +9,165 @@ declare global {
 export class SpeechHandler {
   private recognition: SpeechRecognition | null = null;
   private isSpeaking: boolean = false;
+  private isListening: boolean = false;
   private audio: HTMLAudioElement | null = null;
+  private conversationMode: boolean = false;
+  private silenceTimeout: NodeJS.Timeout | null = null;
+  private readonly SILENCE_THRESHOLD = 1500; // 1.5 seconds of silence before stopping
+
+  // Debug settings
+  private debug: boolean = true;
+  private debugLog(message: string, ...args: any[]) {
+    if (this.debug) {
+      console.log(`[SpeechHandler] ${message}`, ...args);
+    }
+  }
 
   constructor() {
+    this.debugLog('Initializing SpeechHandler');
     if ('webkitSpeechRecognition' in window) {
       try {
         this.recognition = new window.webkitSpeechRecognition();
-        this.recognition.continuous = false;
-        this.recognition.interimResults = false;
+        this.recognition.continuous = true;
+        this.recognition.interimResults = true;
         this.recognition.lang = 'en-US';
+
+        this.setupRecognitionHandlers();
+        this.debugLog('Speech recognition initialized successfully');
       } catch (err) {
         console.error('Failed to initialize speech recognition:', err);
         this.recognition = null;
       }
     }
 
+    this.setupAudioHandlers();
+  }
+
+  private setupRecognitionHandlers() {
+    if (!this.recognition) return;
+
+    this.recognition.onstart = () => {
+      this.debugLog('Recognition started');
+      this.isListening = true;
+    };
+
+    this.recognition.onend = () => {
+      this.debugLog('Recognition ended');
+      this.isListening = false;
+
+      // In conversation mode, restart listening if not speaking
+      if (this.conversationMode && !this.isSpeaking) {
+        this.debugLog('Restarting recognition in conversation mode');
+        this.startListening();
+      }
+    };
+
+    this.recognition.onerror = (event: any) => {
+      this.debugLog('Recognition error:', event.error);
+      this.isListening = false;
+    };
+
+    this.recognition.onresult = (event: any) => {
+      const result = event.results[event.results.length - 1];
+      if (result.isFinal) {
+        const transcript = result[0].transcript;
+        this.debugLog('Final transcript:', transcript);
+
+        // Reset silence detection
+        if (this.silenceTimeout) {
+          clearTimeout(this.silenceTimeout);
+        }
+      }
+    };
+  }
+
+  private setupAudioHandlers() {
+    this.debugLog('Setting up audio handlers');
     this.audio = new Audio();
+
     this.audio.addEventListener('ended', () => {
+      this.debugLog('Audio playback ended');
       this.isSpeaking = false;
+
+      // Resume listening in conversation mode after speaking
+      if (this.conversationMode) {
+        this.debugLog('Resuming listening after speech');
+        this.startListening();
+      }
     });
 
     this.audio.addEventListener('error', (e) => {
-      console.error('Audio playback error:', e);
+      this.debugLog('Audio playback error:', e);
       this.isSpeaking = false;
     });
 
     this.audio.addEventListener('play', () => {
+      this.debugLog('Audio playback started');
       this.isSpeaking = true;
+
+      // Stop listening while speaking to prevent feedback
+      if (this.isListening) {
+        this.debugLog('Pausing recognition during speech');
+        this.stopListening();
+      }
     });
   }
 
-  startListening(onResult: (text: string) => void, onError: (error: string) => void) {
+  setConversationMode(enabled: boolean) {
+    this.debugLog('Setting conversation mode:', enabled);
+    this.conversationMode = enabled;
+
+    if (enabled) {
+      this.startListening();
+    } else {
+      this.stopListening();
+    }
+  }
+
+  startListening(onResult?: (text: string) => void, onError?: (error: string) => void) {
     if (!this.recognition) {
-      onError("Speech recognition not supported in this browser");
+      this.debugLog('Speech recognition not supported');
+      onError?.("Speech recognition not supported in this browser");
       return;
     }
 
     if (this.isSpeaking) {
-      onError("Please wait for AI to finish speaking");
+      this.debugLog('Cannot start listening while speaking');
+      onError?.("Please wait for AI to finish speaking");
       return;
     }
 
     try {
-      this.recognition.onresult = (event: SpeechRecognitionEvent) => {
-        if (event.results.length > 0) {
-          const transcript = event.results[0][0].transcript;
-          onResult(transcript);
-        }
-      };
+      if (!this.isListening) {
+        this.debugLog('Starting recognition');
+        this.recognition.start();
+      }
 
-      this.recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-        onError(`Speech recognition error: ${event.error}`);
-      };
+      // Set up result handler if provided
+      if (onResult) {
+        this.recognition.onresult = (event: any) => {
+          const result = event.results[event.results.length - 1];
+          if (result.isFinal) {
+            const transcript = result[0].transcript;
+            this.debugLog('Final transcript with callback:', transcript);
+            onResult(transcript);
 
-      this.recognition.start();
+            // Stop listening after getting result in non-conversation mode
+            if (!this.conversationMode) {
+              this.stopListening();
+            }
+          }
+        };
+      }
     } catch (err) {
-      onError("Failed to start speech recognition");
+      this.debugLog('Error starting recognition:', err);
+      onError?.("Failed to start speech recognition");
     }
   }
 
   stopListening() {
-    if (this.recognition) {
+    if (this.recognition && this.isListening) {
+      this.debugLog('Stopping recognition');
       try {
         this.recognition.stop();
       } catch (err) {
@@ -79,8 +177,17 @@ export class SpeechHandler {
   }
 
   async speak(text: string, voiceId?: string) {
+    this.debugLog('Speaking text:', text.substring(0, 50) + '...');
+
     try {
+      // Stop listening while speaking to prevent feedback
+      if (this.isListening) {
+        this.debugLog('Pausing recognition before speaking');
+        this.stopListening();
+      }
+
       if (this.isSpeaking) {
+        this.debugLog('Stopping current audio playback');
         this.audio?.pause();
       }
 
@@ -105,15 +212,17 @@ export class SpeechHandler {
         throw new Error('Voice synthesis unavailable. Please try again later.');
       }
 
+      this.debugLog('Audio response received');
       const audioBlob = await response.blob();
       const audioUrl = URL.createObjectURL(audioBlob);
 
       if (this.audio) {
+        this.debugLog('Starting audio playback');
         this.audio.src = audioUrl;
         await this.audio.play();
       }
     } catch (err) {
-      console.error('Error with speech synthesis:', err);
+      this.debugLog('Error with speech synthesis:', err);
       this.isSpeaking = false;
       throw err;
     }
@@ -121,6 +230,10 @@ export class SpeechHandler {
 
   isSupported(): boolean {
     return this.recognition !== null;
+  }
+
+  isInConversationMode(): boolean {
+    return this.conversationMode;
   }
 }
 

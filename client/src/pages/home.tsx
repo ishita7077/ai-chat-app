@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Mic, MicOff, Send, Trash2, Volume2, VolumeX } from "lucide-react";
+import { Mic, MicOff, Send, Trash2, Volume2, VolumeX, MessageSquare } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { speechHandler } from "@/lib/speech";
 import type { Message } from "@shared/schema";
@@ -14,6 +14,7 @@ export default function Home() {
   const [input, setInput] = useState("");
   const [isListening, setIsListening] = useState(false);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
+  const [isConversationMode, setIsConversationMode] = useState(false);
   const { toast } = useToast();
 
   const { data: messages = [], isLoading } = useQuery<Message[]>({
@@ -41,9 +42,16 @@ export default function Home() {
       setInput("");
 
       // Speak the AI's response if speech is enabled
-      if (isAudioEnabled && data.length > 1) {
+      if (isAudioEnabled && data?.length > 1) {
         const aiResponse = data[1].content;
-        speechHandler.speak(aiResponse, "ThT5KcBeYPX3keUQqHPh"); // Use Nicole's voice
+        speechHandler.speak(aiResponse, "ThT5KcBeYPX3keUQqHPh").catch((error) => {
+          console.error('Speech synthesis error:', error);
+          toast({
+            variant: "destructive",
+            title: "Speech Error",
+            description: error.message,
+          });
+        });
       }
     },
     onError: (error) => {
@@ -76,6 +84,26 @@ export default function Home() {
     e.preventDefault();
     if (!input.trim()) return;
     sendMessage.mutate(input);
+  };
+
+  const toggleConversationMode = () => {
+    const newMode = !isConversationMode;
+    setIsConversationMode(newMode);
+    speechHandler.setConversationMode(newMode);
+
+    if (newMode) {
+      toast({
+        title: "Conversation Mode Enabled",
+        description: "AI will listen continuously and respond with voice.",
+      });
+      setIsListening(true);
+    } else {
+      toast({
+        title: "Conversation Mode Disabled",
+        description: "Returning to manual input mode.",
+      });
+      setIsListening(false);
+    }
   };
 
   const toggleListening = () => {
@@ -114,6 +142,14 @@ export default function Home() {
               title={isAudioEnabled ? "Mute voice responses" : "Enable voice responses"}
             >
               {isAudioEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+            </Button>
+            <Button
+              variant={isConversationMode ? "default" : "outline"}
+              size="icon"
+              onClick={toggleConversationMode}
+              title={isConversationMode ? "Disable conversation mode" : "Enable conversation mode"}
+            >
+              <MessageSquare className="h-4 w-4" />
             </Button>
             <Button
               variant="outline"
@@ -172,13 +208,13 @@ export default function Home() {
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={sendMessage.isPending ? "AI is thinking..." : "Type your message..."}
+            placeholder={isConversationMode ? "Listening..." : (sendMessage.isPending ? "AI is thinking..." : "Type your message...")}
             className="flex-1"
-            disabled={sendMessage.isPending}
+            disabled={sendMessage.isPending || isConversationMode}
           />
           <Button
             type="button"
-            variant="outline"
+            variant={isListening ? "destructive" : "outline"}
             size="icon"
             onClick={toggleListening}
             disabled={!speechHandler.isSupported() || sendMessage.isPending}
@@ -192,7 +228,7 @@ export default function Home() {
           </Button>
           <Button 
             type="submit" 
-            disabled={!input.trim() || sendMessage.isPending}
+            disabled={!input.trim() || sendMessage.isPending || isConversationMode}
           >
             <Send className="h-4 w-4" />
           </Button>
