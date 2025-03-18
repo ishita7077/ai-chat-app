@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -8,6 +10,57 @@
   }
 
   body {
-    @apply font-sans antialiased bg-background text-foreground;
+    @apply font-sans antialiased bg-gradient-to-br from-slate-50 to-slate-100 text-foreground min-h-screen;
+  }
+}
+
+@layer components {
+  .message-bubble {
+    @apply max-w-[80%] p-4 rounded-2xl shadow-sm transition-all duration-200;
+  }
+
+  .message-bubble-user {
+    @apply bg-primary/90 text-primary-foreground;
+    animation: slideLeft 0.3s ease-out;
+  }
+
+  .message-bubble-ai {
+    @apply bg-gradient-to-br from-gray-50 to-white hover:shadow-md cursor-pointer;
+    animation: slideRight 0.3s ease-out;
+  }
+
+  .mic-button {
+    @apply relative;
+  }
+
+  .mic-button.active::before {
+    content: '';
+    @apply absolute inset-0 rounded-full bg-red-500/20 animate-ping;
+  }
+
+  .chat-container {
+    @apply bg-white/80 backdrop-blur-sm shadow-lg rounded-xl border border-gray-100;
+  }
+}
+
+@keyframes slideRight {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideLeft {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
   }
 }

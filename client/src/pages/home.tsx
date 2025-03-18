@@ -131,15 +131,18 @@ export default function Home() {
 
   return (
     <div className="container mx-auto max-w-4xl p-4 h-screen flex flex-col">
-      <Card className="flex-1 flex flex-col p-4 mb-4">
-        <div className="flex justify-between items-center mb-4">
-          <h1 className="text-2xl font-bold">AI Chat Assistant</h1>
-          <div className="flex gap-2">
+      <Card className="chat-container flex-1 flex flex-col p-6 mb-4">
+        <div className="flex justify-between items-center mb-6 pb-4 border-b">
+          <h1 className="text-2xl font-semibold bg-gradient-to-r from-primary/90 to-primary bg-clip-text text-transparent">
+            AI Chat Assistant
+          </h1>
+          <div className="flex gap-3">
             <Button
               variant="outline"
               size="icon"
               onClick={() => setIsAudioEnabled(!isAudioEnabled)}
               title={isAudioEnabled ? "Mute voice responses" : "Enable voice responses"}
+              className="transition-transform hover:scale-105"
             >
               {isAudioEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
             </Button>
@@ -148,6 +151,7 @@ export default function Home() {
               size="icon"
               onClick={toggleConversationMode}
               title={isConversationMode ? "Disable conversation mode" : "Enable conversation mode"}
+              className="transition-transform hover:scale-105"
             >
               <MessageSquare className="h-4 w-4" />
             </Button>
@@ -155,6 +159,7 @@ export default function Home() {
               variant="outline"
               size="icon"
               onClick={() => clearChat.mutate()}
+              className="transition-transform hover:scale-105"
             >
               <Trash2 className="h-4 w-4" />
             </Button>
@@ -167,7 +172,7 @@ export default function Home() {
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-6">
               {messages.map((message) => (
                 <div
                   key={message.id}
@@ -176,13 +181,12 @@ export default function Home() {
                   }`}
                 >
                   <div
-                    className={`max-w-[80%] p-3 rounded-lg ${
+                    className={`message-bubble ${
                       message.role === "user"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted"
+                        ? "message-bubble-user"
+                        : "message-bubble-ai"
                     }`}
                     onClick={() => message.role === "assistant" && isAudioEnabled && speechHandler.speak(message.content, "ThT5KcBeYPX3keUQqHPh")}
-                    style={{ cursor: message.role === "assistant" ? "pointer" : "default" }}
                     title={message.role === "assistant" ? "Click to hear this response" : undefined}
                   >
                     {message.content}
@@ -191,11 +195,11 @@ export default function Home() {
               ))}
               {sendMessage.isPending && (
                 <div className="flex justify-start">
-                  <div className="max-w-[80%] p-3 rounded-lg bg-muted">
+                  <div className="message-bubble message-bubble-ai">
                     <div className="flex items-center gap-2">
-                      <div className="animate-pulse w-2 h-2 bg-foreground rounded-full"></div>
-                      <div className="animate-pulse w-2 h-2 bg-foreground rounded-full delay-150"></div>
-                      <div className="animate-pulse w-2 h-2 bg-foreground rounded-full delay-300"></div>
+                      <div className="animate-pulse w-2 h-2 bg-primary rounded-full"></div>
+                      <div className="animate-pulse w-2 h-2 bg-primary rounded-full delay-150"></div>
+                      <div className="animate-pulse w-2 h-2 bg-primary rounded-full delay-300"></div>
                     </div>
                   </div>
                 </div>
@@ -204,12 +208,12 @@ export default function Home() {
           )}
         </ScrollArea>
 
-        <form onSubmit={handleSubmit} className="flex gap-2 mt-4">
+        <form onSubmit={handleSubmit} className="flex gap-3 mt-6 pt-4 border-t">
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder={isConversationMode ? "Listening..." : (sendMessage.isPending ? "AI is thinking..." : "Type your message...")}
-            className="flex-1"
+            className="flex-1 bg-white/50 focus:bg-white transition-colors"
             disabled={sendMessage.isPending || isConversationMode}
           />
           <Button
@@ -218,7 +222,7 @@ export default function Home() {
             size="icon"
             onClick={toggleListening}
             disabled={!speechHandler.isSupported() || sendMessage.isPending}
-            className={isListening ? "bg-red-100 hover:bg-red-200" : ""}
+            className={`mic-button transition-transform hover:scale-105 ${isListening ? 'active' : ''}`}
           >
             {isListening ? (
               <MicOff className="h-4 w-4" />
@@ -229,6 +233,7 @@ export default function Home() {
           <Button 
             type="submit" 
             disabled={!input.trim() || sendMessage.isPending || isConversationMode}
+            className="bg-primary/90 hover:bg-primary transition-colors"
           >
             <Send className="h-4 w-4" />
           </Button>
