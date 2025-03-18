@@ -33,13 +33,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
               role: msg.role as "user" | "assistant" | "system",
               content: msg.content
             })),
-            { 
+            {
               role: message.role as "user",
-              content: message.content 
+              content: message.content
             }
           ]
         });
 
+      // Parse and save the AI's response
         const aiMessage = chatResponseSchema.parse({
           role: "assistant",
           content: response.choices[0].message.content || "",
