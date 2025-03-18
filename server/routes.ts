@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import OpenAI from "openai";
 import { insertMessageSchema, chatResponseSchema } from "@shared/schema";
 import { z } from "zod";
-import { ElevenLabs } from 'elevenlabs-node';
+import elevenlabs from 'elevenlabs-node';
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -12,7 +12,7 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 // Initialize ElevenLabs client
 let voice;
 try {
-  voice = new ElevenLabs({
+  voice = elevenlabs({
     apiKey: process.env.ELEVENLABS_API_KEY
   });
   console.log('ElevenLabs client initialized successfully');
@@ -42,8 +42,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log('Generating audio with ElevenLabs...');
       // Generate audio using ElevenLabs with optimized settings for natural speech
-      const audioResponse = await voice.textToSpeech({
-        text,
+      const audioResponse = await voice.generate(text, {
         voice_id: VOICE_ID,
         model_id: 'eleven_multilingual_v2',
         voice_settings: {
@@ -62,8 +61,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       console.log('Audio generated successfully, sending response');
-      // Send audio back to client
-      res.set('Content-Type', 'audio/mpeg');
+      // Send audio back to client with correct MIME type
+      res.set({
+        'Content-Type': 'audio/mpeg',
+        'Transfer-Encoding': 'chunked'
+      });
+
       const audioBuffer = Buffer.from(audioResponse);
       if (!audioBuffer.length) {
         throw new Error('Empty audio buffer received');
