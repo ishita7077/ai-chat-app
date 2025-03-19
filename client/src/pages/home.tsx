@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Mic, MicOff, Send, Trash2, Volume2, VolumeX, MessageSquare, Square } from "lucide-react";
+import { Mic, MicOff, Send, Trash2, MessageSquare, Square } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { speechHandler } from "@/lib/speech";
 import type { Message } from "@shared/schema";
@@ -14,18 +14,12 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 export default function Home() {
   const [input, setInput] = useState("");
   const [isListening, setIsListening] = useState(false);
-  const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [isConversationMode, setIsConversationMode] = useState(false);
   const { toast } = useToast();
 
   const { data: messages = [], isLoading } = useQuery<Message[]>({
     queryKey: ["/api/messages"],
   });
-
-  // Update window.audioEnabled when isAudioEnabled changes
-  useEffect(() => {
-    window.audioEnabled = isAudioEnabled;
-  }, [isAudioEnabled]);
 
   const sendMessage = useMutation({
     mutationFn: async (content: string) => {
@@ -47,8 +41,8 @@ export default function Home() {
       queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
       setInput("");
 
-      // Speak the AI's response if speech is enabled
-      if (isAudioEnabled && data?.length > 1) {
+      // Speak the AI's response
+      if (data?.length > 1) {
         const aiResponse = data[1].content;
         speechHandler.speak(aiResponse, "ThT5KcBeYPX3keUQqHPh")
           .catch((error) => {
@@ -151,15 +145,6 @@ export default function Home() {
               <ThemeToggle />
             </div>
             <div className="flex gap-3">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setIsAudioEnabled(!isAudioEnabled)}
-                title={isAudioEnabled ? "Mute voice responses" : "Enable voice responses"}
-                className="control-button"
-              >
-                {isAudioEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
-              </Button>
               {speechHandler.getIsSpeaking() && (
                 <Button
                   variant="destructive"
@@ -211,7 +196,7 @@ export default function Home() {
                           ? "message-bubble-user"
                           : "message-bubble-ai"
                       }`}
-                      onClick={() => message.role === "assistant" && isAudioEnabled && speechHandler.speak(message.content, "ThT5KcBeYPX3keUQqHPh")}
+                      onClick={() => message.role === "assistant" && speechHandler.speak(message.content, "ThT5KcBeYPX3keUQqHPh")}
                       title={message.role === "assistant" ? "Click to hear this response" : undefined}
                     >
                       {message.content}

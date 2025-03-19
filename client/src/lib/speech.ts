@@ -3,7 +3,6 @@ import { useToast } from "@/hooks/use-toast";
 declare global {
   interface Window {
     webkitSpeechRecognition: typeof SpeechRecognition;
-    audioEnabled: boolean;
   }
 }
 
@@ -140,7 +139,6 @@ export class SpeechHandler {
         this.recognition.start();
       }
 
-      // Set up result handler if provided
       if (onResult) {
         this.recognition.onresult = (event: any) => {
           const result = event.results[event.results.length - 1];
@@ -176,12 +174,6 @@ export class SpeechHandler {
     this.debugLog('Speaking text:', text.substring(0, 50) + '...');
 
     try {
-      // Check if audio is enabled via the global variable
-      if (!window.audioEnabled) {
-        this.debugLog('Audio is disabled, skipping speech');
-        return;
-      }
-
       // Stop listening while speaking to prevent feedback
       if (this.isListening) {
         this.debugLog('Pausing recognition before speaking');
