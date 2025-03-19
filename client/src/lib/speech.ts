@@ -3,6 +3,7 @@ import { useToast } from "@/hooks/use-toast";
 declare global {
   interface Window {
     webkitSpeechRecognition: typeof SpeechRecognition;
+    audioEnabled: boolean; // Added global variable for audio enable/disable
   }
 }
 
@@ -180,6 +181,12 @@ export class SpeechHandler {
     this.debugLog('Speaking text:', text.substring(0, 50) + '...');
 
     try {
+      // Check if audio is enabled via the passed parameter
+      if (!window.audioEnabled) {
+        this.debugLog('Audio is disabled, skipping speech');
+        return;
+      }
+
       // Stop listening while speaking to prevent feedback
       if (this.isListening) {
         this.debugLog('Pausing recognition before speaking');
@@ -188,7 +195,7 @@ export class SpeechHandler {
 
       if (this.isSpeaking) {
         this.debugLog('Stopping current audio playback');
-        this.audio?.pause();
+        await this.stopSpeaking();
       }
 
       this.isSpeaking = true;
@@ -198,9 +205,9 @@ export class SpeechHandler {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           text,
-          voiceId 
+          voiceId
         }),
       });
 
@@ -225,6 +232,15 @@ export class SpeechHandler {
       this.debugLog('Error with speech synthesis:', err);
       this.isSpeaking = false;
       throw err;
+    }
+  }
+
+  // Add method to stop current speech
+  async stopSpeaking() {
+    if (this.audio && this.isSpeaking) {
+      this.audio.pause();
+      this.audio.currentTime = 0;
+      this.isSpeaking = false;
     }
   }
 
