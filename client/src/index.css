@@ -11,20 +11,28 @@
 
   body {
     @apply font-sans antialiased text-foreground min-h-screen relative;
+  }
+}
+
+@layer components {
+  .landing-page {
+    @apply min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800;
+  }
+
+  .chat-page {
+    @apply min-h-screen relative;
     background-image: url('/attached_assets/image_1742369583562.png');
     background-size: cover;
     background-position: center;
     background-attachment: fixed;
   }
 
-  /* Add overlay */
-  body::before {
+  /* Add overlay for chat page */
+  .chat-page::before {
     content: '';
     @apply absolute inset-0 bg-gradient-to-br from-slate-50/95 to-slate-100/95 dark:from-slate-900/95 dark:to-slate-800/95;
   }
-}
 
-@layer components {
   .message-bubble {
     @apply max-w-[80%] p-3 rounded-3xl shadow-sm transition-all duration-300 relative;
   }

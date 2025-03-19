@@ -123,118 +123,120 @@ export default function Home() {
   };
 
   return (
-    <div className="container mx-auto max-w-3xl p-4 h-screen flex flex-col justify-center relative z-10">
-      <Card className="chat-container flex-1 flex flex-col p-6 mb-4 max-h-[85vh]">
-        <div className="flex justify-between items-center mb-6 pb-4 border-b">
-          <div className="flex items-center gap-4">
-            <h1 className="text-2xl font-semibold bg-gradient-to-r from-primary/90 to-primary bg-clip-text text-transparent">
-              AI Chat Assistant
-            </h1>
-            <ThemeToggle />
-          </div>
-          <div className="flex gap-3">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setIsAudioEnabled(!isAudioEnabled)}
-              title={isAudioEnabled ? "Mute voice responses" : "Enable voice responses"}
-              className="control-button"
-            >
-              {isAudioEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
-            </Button>
-            <Button
-              variant={isConversationMode ? "default" : "outline"}
-              size="icon"
-              onClick={toggleConversationMode}
-              title={isConversationMode ? "Disable conversation mode" : "Enable conversation mode"}
-              className="control-button"
-            >
-              <MessageSquare className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => clearChat.mutate()}
-              className="control-button"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-
-        <ScrollArea className="flex-1 pr-4">
-          {isLoading ? (
-            <div className="flex justify-center items-center h-full">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+    <div className="chat-page">
+      <div className="container mx-auto max-w-3xl p-4 h-screen flex flex-col justify-center relative z-10">
+        <Card className="chat-container flex-1 flex flex-col p-6 mb-4 max-h-[85vh]">
+          <div className="flex justify-between items-center mb-6 pb-4 border-b">
+            <div className="flex items-center gap-4">
+              <h1 className="text-2xl font-semibold bg-gradient-to-r from-primary/90 to-primary bg-clip-text text-transparent">
+                AI Chat Assistant
+              </h1>
+              <ThemeToggle />
             </div>
-          ) : (
-            <div className="space-y-6">
-              {messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`flex ${
-                    message.role === "user" ? "justify-end" : "justify-start"
-                  }`}
-                >
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setIsAudioEnabled(!isAudioEnabled)}
+                title={isAudioEnabled ? "Mute voice responses" : "Enable voice responses"}
+                className="control-button"
+              >
+                {isAudioEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+              </Button>
+              <Button
+                variant={isConversationMode ? "default" : "outline"}
+                size="icon"
+                onClick={toggleConversationMode}
+                title={isConversationMode ? "Disable conversation mode" : "Enable conversation mode"}
+                className="control-button"
+              >
+                <MessageSquare className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => clearChat.mutate()}
+                className="control-button"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+
+          <ScrollArea className="flex-1 pr-4">
+            {isLoading ? (
+              <div className="flex justify-center items-center h-full">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {messages.map((message) => (
                   <div
-                    className={`message-bubble ${
-                      message.role === "user"
-                        ? "message-bubble-user"
-                        : "message-bubble-ai"
+                    key={message.id}
+                    className={`flex ${
+                      message.role === "user" ? "justify-end" : "justify-start"
                     }`}
-                    onClick={() => message.role === "assistant" && isAudioEnabled && speechHandler.speak(message.content, "ThT5KcBeYPX3keUQqHPh")}
-                    title={message.role === "assistant" ? "Click to hear this response" : undefined}
                   >
-                    {message.content}
-                  </div>
-                </div>
-              ))}
-              {sendMessage.isPending && (
-                <div className="flex justify-start">
-                  <div className="message-bubble message-bubble-ai">
-                    <div className="flex items-center gap-2">
-                      <div className="animate-pulse w-2 h-2 bg-primary rounded-full"></div>
-                      <div className="animate-pulse w-2 h-2 bg-primary rounded-full delay-150"></div>
-                      <div className="animate-pulse w-2 h-2 bg-primary rounded-full delay-300"></div>
+                    <div
+                      className={`message-bubble ${
+                        message.role === "user"
+                          ? "message-bubble-user"
+                          : "message-bubble-ai"
+                      }`}
+                      onClick={() => message.role === "assistant" && isAudioEnabled && speechHandler.speak(message.content, "ThT5KcBeYPX3keUQqHPh")}
+                      title={message.role === "assistant" ? "Click to hear this response" : undefined}
+                    >
+                      {message.content}
                     </div>
                   </div>
-                </div>
-              )}
-            </div>
-          )}
-        </ScrollArea>
-
-        <form onSubmit={handleSubmit} className="flex gap-3 mt-6 pt-4 border-t">
-          <Input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder={isConversationMode ? "Listening..." : (sendMessage.isPending ? "AI is thinking..." : "Type your message...")}
-            className="flex-1 bg-white/50 focus:bg-white transition-colors"
-            disabled={sendMessage.isPending || isConversationMode}
-          />
-          <Button
-            type="button"
-            variant={isListening ? "destructive" : "outline"}
-            size="icon"
-            onClick={toggleListening}
-            disabled={!speechHandler.isSupported() || sendMessage.isPending}
-            className={`mic-button ${isListening ? 'active' : ''}`}
-          >
-            {isListening ? (
-              <MicOff className="h-4 w-4" />
-            ) : (
-              <Mic className="h-4 w-4" />
+                ))}
+                {sendMessage.isPending && (
+                  <div className="flex justify-start">
+                    <div className="message-bubble message-bubble-ai">
+                      <div className="flex items-center gap-2">
+                        <div className="animate-pulse w-2 h-2 bg-primary rounded-full"></div>
+                        <div className="animate-pulse w-2 h-2 bg-primary rounded-full delay-150"></div>
+                        <div className="animate-pulse w-2 h-2 bg-primary rounded-full delay-300"></div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
-          </Button>
-          <Button 
-            type="submit" 
-            disabled={!input.trim() || sendMessage.isPending || isConversationMode}
-            className="send-button bg-primary/90"
-          >
-            <Send className="h-4 w-4" />
-          </Button>
-        </form>
-      </Card>
+          </ScrollArea>
+
+          <form onSubmit={handleSubmit} className="flex gap-3 mt-6 pt-4 border-t">
+            <Input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder={isConversationMode ? "Listening..." : (sendMessage.isPending ? "AI is thinking..." : "Type your message...")}
+              className="flex-1 bg-white/50 focus:bg-white transition-colors"
+              disabled={sendMessage.isPending || isConversationMode}
+            />
+            <Button
+              type="button"
+              variant={isListening ? "destructive" : "outline"}
+              size="icon"
+              onClick={toggleListening}
+              disabled={!speechHandler.isSupported() || sendMessage.isPending}
+              className={`mic-button ${isListening ? 'active' : ''}`}
+            >
+              {isListening ? (
+                <MicOff className="h-4 w-4" />
+              ) : (
+                <Mic className="h-4 w-4" />
+              )}
+            </Button>
+            <Button 
+              type="submit" 
+              disabled={!input.trim() || sendMessage.isPending || isConversationMode}
+              className="send-button bg-primary/90"
+            >
+              <Send className="h-4 w-4" />
+            </Button>
+          </form>
+        </Card>
+      </div>
     </div>
   );
 }

@@ -19,7 +19,7 @@ export default function Landing() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+    <div className="landing-page">
       <div className="container mx-auto px-4 py-12">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
