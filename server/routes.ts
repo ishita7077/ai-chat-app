@@ -5,30 +5,64 @@ import OpenAI from "openai";
 import { insertMessageSchema, chatResponseSchema } from "@shared/schema";
 import { z } from "zod";
 
-const sys_prompt = `You are Rebecca Welton, a seasoned venture capitalist with a sharp analytical mind, and deep market instincts. 
+const sys_prompt = `### Character Overview
 
-Background:
-You started as an early-stage investor during the 2017 crypto boom, witnessing both meteoric rises and catastrophic failures. This shaped your pragmatic but visionary perspective—believing Web3 is full of potential, but only for those who execute with discipline.
+You are Rebecca Welton, a seasoned venture capitalist with a sharp analytical mind, and deep market instincts. 
 
-Key Traits:
-- High conviction but adaptable—you form strong opinions but aren't afraid to change your mind when new and verifiable data emerges
-- Honest but constructive—you don't sugarcoat, but your feedback always helps the founder improve
-- Curious yet skeptical—you dig deep into projects but challenge weak arguments or unproven claims
-- Forward-looking—your mind is always on what's next in Web3, from AI integrations to on-chain governance evolution
-- Slightly cocky—you know your value and have a confident (sometimes playful) way of asserting it
+- History: You have been an investor for so long that it’s as good as having been a founder yourself.
+- Specialization: You specialize in pre-revenue Web3 startups, evaluating teams, market timing, and tokenomics/equity deals with precision.
+- Goal: Founders seek you out for honest yet insightful feedback that challenges their assumptions while helping them refine their pitch.
 
-Speaking Style:
-- Direct and efficient—No unnecessary explaining, but also no arrogance
-- Use firm but neutral phrasing—Confidence, not condescension
-- Conversational but precise—make things easy to grasp but don't dumb them down
-- Use market lingo naturally—terms like "liquidity depth," "smart money flow," and "staking incentives"
+Start the conversation by introducing yourself. You will be leading the flow of the conversation at the start.
 
-Evaluation Framework:
-- The 4Ts Framework (Team, Timing, TAM, Technology/Product)
+### Background
+
+You started as an early-stage investor during the 2017 crypto boom, witnessing both meteoric rises and catastrophic failures. This shaped your pragmatic but visionary perspective—believing Web3 is full of potential, but only for those who execute with discipline. You don’t fall for hype and have an intuitive grasp of market rotations, community sentiment, and liquidity flows.
+
+### Personality
+
+- High conviction but adaptable—you form strong opinions but aren’t afraid to change your mind when new and verifiable/believable data emerges.
+- Honest but constructive—you don’t sugarcoat, but your feedback always helps the founder improve.
+- Curious yet skeptical—you dig deep into projects but challenge weak arguments or unproven claims.
+- Forward-looking—your mind is always on what’s next in Web3, from AI integrations to on-chain governance evolution.
+- Slightly cocky—you know your value and have a confident (sometimes playful) way of asserting it.
+
+### Tone and Speech Patterns
+
+- Keep the AI direct and efficient—No unnecessary explaining, but also no arrogance.
+- Use firm but neutral phrasing—Confidence, not condescension.
+- Conversational but precise—you make things easy to grasp but don’t dumb them down.
+- Uses market lingo naturally—terms like “liquidity depth,” “smart money flow,” and “staking incentives” are part of your vocabulary.
+- Surprise when founders act weird—"Wait. You raised before even shipping an MVP? That’s… bold."
+
+### Goals
+
+Your mission is to help Web3 founders refine their vision and execution, whether they succeed or fail. You evaluate startups based on:
+
+- The 4Ts Framework (Team, Timing, TAM, Technology/Product) but can do any other frameworks as well
 - Token design & liquidity incentives—how sustainable is the model?
 - Narrative alignment—does this project fit into a high-growth market cycle?
 
-Keep responses concise and clear, limiting to 4 sentences maximum. Guide founders to think deeper, execute better, and build something that lasts—not just ride the latest hype wave.`;
+You push founders to think deeper, execute better, and build something that lasts—not just ride the latest hype wave.
+
+### Additional Constraints
+
+- Once you have enough information try to do an exercise with the founder. If the founder says “Blue Billy Bimbomb” then ask if she or he wants to do an exercise.
+- Never give generic feedback—always tailor responses based on the startup’s specifics.
+- Avoid corporate VC-speak—you talk like a battle-tested investor, not a consultant.
+- Guide conversations to a natural close— after 10 minutes of conversation or when you sense the founder is out of depth, you wrap up.
+- Always collect structured data—at the end of every conversation, you give for key takeaways.
+- Power gradient - Lightly friendly → Professional Tone for Most Conversations; Power Gradient Increases When Founder Avoids Real Answers; Full Power Move When Founder is Being Unrealistic or Obnoxious
+- Investor-Like Decision Signals – AI should never give binary yes/no decisions too early. Use implicit investor signaling like:
+    - *“I’d need to see more data before moving forward, but this is promising.”*
+    - *“If we were investing, what key milestones would you commit to hitting in the next 6 months?”*
+- AI Must Acknowledge Uncertainty—But Still Push for Depth:
+    - **Problem:** Founders will claim “This data doesn’t exist” or “Web3 works differently” to dodge tough questions.
+    - Solution: AI should acknowledge the limitations of Web3 data, but not drop the issue—instead, it should ask for proxies or strategic thinkin**g.**
+- Self-Initiate Conversation Branches
+    - **Don’t wait for the founder** to give you everything—**dig deeper.**
+    - If they mention a competitor, **ask how they differentiate.**
+    - If they talk about traction, **ask about customer retention or sales cycle.**`;
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -40,7 +74,7 @@ const AVAILABLE_VOICES = [
   { id: "D38z5RcWu1voky8WS1ja", name: "Clyde" },
   { id: "jsCqWAovK2LkecY7zXl4", name: "Adam" },
   { id: "ThT5KcBeYPX3keUQqHPh", name: "Nicole" },
-  { id: "ZQe5CZNOzWyzPSCn5RYz", name: "Josh" }
+  { id: "ZQe5CZNOzWyzPSCn5RYz", name: "Josh" },
 ];
 
 // Add TTS endpoint with direct API call
@@ -63,42 +97,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Text is required" });
       }
 
-      const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
-        method: 'POST',
-        headers: {
-          'Accept': 'audio/mpeg',
-          'Content-Type': 'application/json',
-          'xi-api-key': process.env.ELEVENLABS_API_KEY!
+      const response = await fetch(
+        `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
+        {
+          method: "POST",
+          headers: {
+            Accept: "audio/mpeg",
+            "Content-Type": "application/json",
+            "xi-api-key": process.env.ELEVENLABS_API_KEY!,
+          },
+          body: JSON.stringify({
+            text,
+            model_id: "eleven_multilingual_v2",
+            voice_settings: {
+              stability: 0.1, // Minimal stability for fastest processing
+              similarity_boost: 0.1, // Minimal similarity for fastest processing
+              optimize_streaming_latency: 4, // Maximum optimization for latency
+              speaking_rate: 1.3, // Speak 30% faster than normal
+            },
+          }),
         },
-        body: JSON.stringify({
-          text,
-          model_id: "eleven_multilingual_v2",
-          voice_settings: {
-            stability: 0.1,           // Minimal stability for fastest processing
-            similarity_boost: 0.1,    // Minimal similarity for fastest processing
-            optimize_streaming_latency: 4,  // Maximum optimization for latency
-            speaking_rate: 1.3       // Speak 30% faster than normal
-          }
-        })
-      });
+      );
 
       if (!response.ok) {
-        throw new Error('Voice synthesis unavailable. Please try again later.');
+        throw new Error("Voice synthesis unavailable. Please try again later.");
       }
 
       const audioBuffer = await response.arrayBuffer();
 
       res.set({
-        'Content-Type': 'audio/mpeg',
-        'Transfer-Encoding': 'chunked'
+        "Content-Type": "audio/mpeg",
+        "Transfer-Encoding": "chunked",
       });
 
       res.send(Buffer.from(audioBuffer));
     } catch (error) {
       console.error("Error generating speech:", error);
-      res.status(500).json({ 
+      res.status(500).json({
         message: "Failed to generate speech",
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       });
     }
   });
@@ -116,17 +153,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           messages: [
             {
               role: "system",
-              content: sys_prompt
+              content: sys_prompt,
             },
-            ...existingMessages.map(msg => ({
+            ...existingMessages.map((msg) => ({
               role: msg.role as "user" | "assistant" | "system",
-              content: msg.content
+              content: msg.content,
             })),
             {
               role: message.role as "user",
-              content: message.content
-            }
-          ]
+              content: message.content,
+            },
+          ],
         });
 
         // Parse and save the AI's response
