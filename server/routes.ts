@@ -92,7 +92,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           messages: [
             {
               role: "system",
-              content: "You are a helpful AI assistant. Be concise and clear in your responses. Keep responses to a maximum of 4 sentences. Prioritize clarity and brevity.",
+              content: "You are a helpful AI assistant.  Respond concisely and clearly, limiting your answer to a maximum of 4 sentences. Prioritize clarity and brevity.",
             },
             ...existingMessages.map(msg => ({
               role: msg.role as "user" | "assistant" | "system",
