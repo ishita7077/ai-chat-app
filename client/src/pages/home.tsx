@@ -26,7 +26,7 @@ export default function Home() {
     mutationFn: async (content: string) => {
       if (content.length > 500) {
         toast({
-          variant: "warning",
+          variant: "destructive",
           title: "Message too long",
           description: "Please shorten your message to under 500 characters.",
         });
@@ -56,19 +56,11 @@ export default function Home() {
       }
     },
     onError: (error) => {
-      if (error.message.includes("quota")) {
-        toast({
-          variant: "destructive",
-          title: "Quota Exceeded",
-          description: "You've reached your ElevenLabs usage quota. Please try again later.",
-        });
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: error.message,
-        });
-      }
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message,
+      });
     },
   });
 
@@ -131,7 +123,7 @@ export default function Home() {
   };
 
   return (
-    <div className="container mx-auto max-w-3xl p-4 h-screen flex flex-col justify-center">
+    <div className="container mx-auto max-w-3xl p-4 h-screen flex flex-col justify-center relative z-10">
       <Card className="chat-container flex-1 flex flex-col p-6 mb-4 max-h-[85vh]">
         <div className="flex justify-between items-center mb-6 pb-4 border-b">
           <div className="flex items-center gap-4">
