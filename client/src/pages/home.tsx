@@ -19,6 +19,12 @@ export default function Home() {
 
   const { data: messages = [], isLoading } = useQuery<Message[]>({
     queryKey: ["/api/messages"],
+    onSuccess: (data) => {
+      // If there are no messages, initialize the conversation
+      if (data.length === 0) {
+        initializeConversation.mutate();
+      }
+    }
   });
 
   const sendMessage = useMutation({
@@ -60,6 +66,36 @@ export default function Home() {
         variant: "destructive",
         title: "Error",
         description: error.message,
+      });
+    },
+  });
+
+  // Add initialization mutation
+  const initializeConversation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("GET", "/api/init-conversation");
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
+      // Play Rebecca's initial message
+      if (data?.[0]?.content) {
+        speechHandler.speak(data[0].content, "ThT5KcBeYPX3keUQqHPh")
+          .catch((error) => {
+            console.error('Speech synthesis error:', error);
+            toast({
+              variant: "destructive",
+              title: "Speech Error",
+              description: error.message,
+            });
+          });
+      }
+    },
+    onError: (error) => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to start conversation",
       });
     },
   });
