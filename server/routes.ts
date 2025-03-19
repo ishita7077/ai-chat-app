@@ -5,6 +5,8 @@ import OpenAI from "openai";
 import { insertMessageSchema, chatResponseSchema } from "@shared/schema";
 import { z } from "zod";
 
+const sys_prompt = "You are a helpful assistant.";
+
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -92,7 +94,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           messages: [
             {
               role: "system",
-              content: "You are a helpful AI assistant.  Respond concisely and clearly, limiting your answer to a maximum of 4 sentences. Prioritize clarity and brevity.",
+              content: sys_prompt
             },
             ...existingMessages.map(msg => ({
               role: msg.role as "user" | "assistant" | "system",
