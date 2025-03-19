@@ -3,7 +3,7 @@ import { useToast } from "@/hooks/use-toast";
 declare global {
   interface Window {
     webkitSpeechRecognition: typeof SpeechRecognition;
-    audioEnabled: boolean; // Added global variable for audio enable/disable
+    audioEnabled: boolean;
   }
 }
 
@@ -14,7 +14,7 @@ export class SpeechHandler {
   private audio: HTMLAudioElement | null = null;
   private conversationMode: boolean = false;
   private silenceTimeout: NodeJS.Timeout | null = null;
-  private readonly SILENCE_THRESHOLD = 1500; // 1.5 seconds of silence before stopping
+  private readonly SILENCE_THRESHOLD = 1500;
 
   // Debug settings
   private debug: boolean = true;
@@ -56,7 +56,6 @@ export class SpeechHandler {
       this.debugLog('Recognition ended');
       this.isListening = false;
 
-      // In conversation mode, restart listening if not speaking
       if (this.conversationMode && !this.isSpeaking) {
         this.debugLog('Restarting recognition in conversation mode');
         this.startListening();
@@ -74,7 +73,6 @@ export class SpeechHandler {
         const transcript = result[0].transcript;
         this.debugLog('Final transcript:', transcript);
 
-        // Reset silence detection
         if (this.silenceTimeout) {
           clearTimeout(this.silenceTimeout);
         }
@@ -86,11 +84,20 @@ export class SpeechHandler {
     this.debugLog('Setting up audio handlers');
     this.audio = new Audio();
 
+    this.audio.addEventListener('play', () => {
+      this.debugLog('Audio playback started');
+      this.isSpeaking = true;
+
+      if (this.isListening) {
+        this.debugLog('Pausing recognition during speech');
+        this.stopListening();
+      }
+    });
+
     this.audio.addEventListener('ended', () => {
       this.debugLog('Audio playback ended');
       this.isSpeaking = false;
 
-      // Resume listening in conversation mode after speaking
       if (this.conversationMode) {
         this.debugLog('Resuming listening after speech');
         this.startListening();
@@ -100,17 +107,6 @@ export class SpeechHandler {
     this.audio.addEventListener('error', (e) => {
       this.debugLog('Audio playback error:', e);
       this.isSpeaking = false;
-    });
-
-    this.audio.addEventListener('play', () => {
-      this.debugLog('Audio playback started');
-      this.isSpeaking = true;
-
-      // Stop listening while speaking to prevent feedback
-      if (this.isListening) {
-        this.debugLog('Pausing recognition during speech');
-        this.stopListening();
-      }
     });
   }
 
@@ -153,7 +149,6 @@ export class SpeechHandler {
             this.debugLog('Final transcript with callback:', transcript);
             onResult(transcript);
 
-            // Stop listening after getting result in non-conversation mode
             if (!this.conversationMode) {
               this.stopListening();
             }
@@ -181,7 +176,7 @@ export class SpeechHandler {
     this.debugLog('Speaking text:', text.substring(0, 50) + '...');
 
     try {
-      // Check if audio is enabled via the passed parameter
+      // Check if audio is enabled via the global variable
       if (!window.audioEnabled) {
         this.debugLog('Audio is disabled, skipping speech');
         return;
@@ -212,10 +207,6 @@ export class SpeechHandler {
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        if (errorText.includes('quota_exceeded')) {
-          throw new Error('Message is too long for voice synthesis. Please try a shorter message or disable voice responses.');
-        }
         throw new Error('Voice synthesis unavailable. Please try again later.');
       }
 
@@ -235,7 +226,6 @@ export class SpeechHandler {
     }
   }
 
-  // Add method to stop current speech
   async stopSpeaking() {
     if (this.audio && this.isSpeaking) {
       this.audio.pause();
@@ -246,6 +236,10 @@ export class SpeechHandler {
 
   isSupported(): boolean {
     return this.recognition !== null;
+  }
+
+  getIsSpeaking(): boolean {
+    return this.isSpeaking;
   }
 
   isInConversationMode(): boolean {

@@ -16,7 +16,6 @@ export default function Home() {
   const [isListening, setIsListening] = useState(false);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [isConversationMode, setIsConversationMode] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
   const { toast } = useToast();
 
   const { data: messages = [], isLoading } = useQuery<Message[]>({
@@ -51,7 +50,6 @@ export default function Home() {
       // Speak the AI's response if speech is enabled
       if (isAudioEnabled && data?.length > 1) {
         const aiResponse = data[1].content;
-        setIsSpeaking(true);
         speechHandler.speak(aiResponse, "ThT5KcBeYPX3keUQqHPh")
           .catch((error) => {
             console.error('Speech synthesis error:', error);
@@ -60,9 +58,6 @@ export default function Home() {
               title: "Speech Error",
               description: error.message,
             });
-          })
-          .finally(() => {
-            setIsSpeaking(false);
           });
       }
     },
@@ -142,7 +137,6 @@ export default function Home() {
         description: "Failed to stop speech playback"
       });
     });
-    setIsSpeaking(false);
   };
 
   return (
@@ -166,7 +160,7 @@ export default function Home() {
               >
                 {isAudioEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
               </Button>
-              {isSpeaking && (
+              {speechHandler.getIsSpeaking() && (
                 <Button
                   variant="destructive"
                   size="icon"
