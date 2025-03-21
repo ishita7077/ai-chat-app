@@ -255,20 +255,48 @@ export class SpeechHandler {
         }
       }
 
-      this.debugLog('Audio response received');
-      const audioBlob = await response.blob();
-      const audioUrl = URL.createObjectURL(audioBlob);
+      // Create a MediaSource instance
+      const mediaSource = new MediaSource();
+      const audioUrl = URL.createObjectURL(mediaSource);
 
       if (this.audio) {
-        this.debugLog('Starting audio playback');
         this.audio.src = audioUrl;
-        await this.audio.play().catch(err => {
-          console.error('Audio playback error:', err);
-          throw new Error('Failed to play audio. Please check your audio settings and permissions.');
-        });
 
-        const totalTime = Date.now() - startTime;
-        this.debugLog(`Total time from text to audio: ${totalTime}ms`);
+        mediaSource.addEventListener('sourceopen', async () => {
+          try {
+            const sourceBuffer = mediaSource.addSourceBuffer('audio/mpeg');
+            const reader = response.body?.getReader();
+
+            // Read the stream
+            while (reader) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              if (value) {
+                sourceBuffer.appendBuffer(value);
+              }
+            }
+
+            // Close the MediaSource when stream is complete
+            sourceBuffer.addEventListener('updateend', () => {
+              if (!sourceBuffer.updating) {
+                mediaSource.endOfStream();
+              }
+            });
+
+            // Start playback
+            await this.audio.play().catch(err => {
+              console.error('Audio playback error:', err);
+              throw new Error('Failed to play audio. Please check your audio settings and permissions.');
+            });
+
+            const totalTime = Date.now() - startTime;
+            this.debugLog(`Total time from text to start of audio: ${totalTime}ms`);
+
+          } catch (err) {
+            console.error('Error handling audio stream:', err);
+            throw new Error('Failed to process audio stream');
+          }
+        });
       }
     } catch (err) {
       this.debugLog('Error with speech synthesis:', err);

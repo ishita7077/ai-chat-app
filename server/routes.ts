@@ -130,7 +130,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Attempting TTS conversion with ElevenLabs API...");
 
       const response = await fetch(
-        `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
+        `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream`,
         {
           method: "POST",
           headers: {
@@ -182,20 +182,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const audioBuffer = await response.arrayBuffer();
-      if (!audioBuffer || audioBuffer.byteLength === 0) {
-        throw new Error("Received empty audio response");
-      }
+      // Set up streaming response headers
+      res.setHeader('Content-Type', 'audio/mpeg');
+      res.setHeader('Transfer-Encoding', 'chunked');
 
-      const totalTime = Date.now() - startTime;
-      console.log(`Total TTS processing time: ${totalTime}ms`);
+      // Pipe the streaming response directly to the client
+      response.body?.pipe(res);
 
-      res.set({
-        "Content-Type": "audio/mpeg",
-        "Transfer-Encoding": "chunked",
+      // Log when streaming ends
+      response.body?.on('end', () => {
+        const totalTime = Date.now() - startTime;
+        console.log(`Total TTS streaming time: ${totalTime}ms`);
       });
 
-      res.send(Buffer.from(audioBuffer));
     } catch (error) {
       console.error("Error generating speech:", error);
       res.status(500).json({
