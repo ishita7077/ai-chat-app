@@ -128,8 +128,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!text) {
         return res.status(400).json({ message: "Text is required" });
       }
-
+      
+      // For shorter texts, prioritize speed
+      const isShortText = text.length < 100;
+      const optimizeParams = {
+        stability: isShortText ? 0.1 : 0.3,               // Lower stability for shortest texts
+        similarity_boost: isShortText ? 0.1 : 0.3,        // Lower similarity for shortest texts
+        speaking_rate: 1.44,                             // Increased by 20% from 1.2 to 1.44
+      };
+      
+      console.log(`[Timing] Text length: ${text.length}, using ${isShortText ? 'ultra-fast' : 'fast'} optimization with 1.2x speed`);
       console.log("[Timing] Sending request to ElevenLabs API");
+      
+      // Use the streaming endpoint with optimized settings
       const response = await fetch(
         `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream`,
         {
@@ -141,14 +152,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           },
           body: JSON.stringify({
             text,
-            model_id: "eleven_multilingual_v2",
+            model_id: "eleven_monolingual_v1", // Use faster monolingual model for English
             voice_settings: {
-              stability: 0.5,
-              similarity_boost: 0.75,
-              style: 0.5,
+              stability: optimizeParams.stability,
+              similarity_boost: optimizeParams.similarity_boost,
+              style: 0.0,                   // Neutral style for faster processing
               use_speaker_boost: true,
-              speaking_rate: 1.3, // 30% faster
-              emphasis: 1.3, // More gravitas
+              optimize_streaming_latency: 4, // Maximum optimization (1-4)
+              speaking_rate: optimizeParams.speaking_rate,
             },
           }),
         },
@@ -182,55 +193,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Set streaming headers
       res.setHeader("Content-Type", "audio/mpeg");
       res.setHeader("Transfer-Encoding", "chunked");
-
-      // Stream the response
+      
+      // Stream the response directly to client
       const reader = response.body?.getReader();
-      let totalBytes = 0;
       let chunks = 0;
+      let totalBytes = 0;
       let firstChunkTime = 0;
-
+      let chunkStartTime = Date.now();
+      
+      console.log("[Timing] Starting to stream audio chunks");
+      
       // Process audio chunks as they arrive
       while (reader) {
         const { done, value } = await reader.read();
         if (done) break;
-
+        
         if (value) {
           chunks++;
           totalBytes += value.length;
-
-          // Record timing of first chunk
+          
+          // Record first chunk timing
           if (chunks === 1) {
             firstChunkTime = Date.now() - startTime;
-            console.log(
-              `[Timing] First chunk received from ElevenLabs after: ${firstChunkTime}ms`,
-            );
-            console.log(`[Timing] First chunk size: ${value.length} bytes`);
-            console.log(
-              `[Timing] Server starting to stream first chunk at: ${Date.now()}`,
-            );
+            console.log(`[Timing] First chunk received after ${firstChunkTime}ms, size: ${value.length} bytes`);
+            
+            // Send first chunk immediately with priority
+            res.write(Buffer.from(value));
+            chunkStartTime = Date.now();
+          } else {
+            // For subsequent chunks, log timing pattern
+            const chunkTime = Date.now() - chunkStartTime;
+            chunkStartTime = Date.now();
+            
+            if (chunks % 100 === 0) {
+              console.log(`[Timing] Chunk #${chunks} after ${chunkTime}ms, progressive total: ${totalBytes} bytes`);
+            }
+            
+            // Send chunk to client
+            res.write(Buffer.from(value));
           }
-
-          res.write(Buffer.from(value));
-          console.log(
-            `[Timing] Streamed chunk #${chunks} at: ${Date.now()}, size: ${value.length} bytes, total: ${totalBytes} bytes`,
-          );
         }
       }
+      
       res.end();
-
-      const totalTime = Date.now() - startTime;
-      console.log(`[Timing] Streaming stats:
-        - First chunk delay: ${firstChunkTime}ms
-        - Total chunks: ${chunks}
-        - Total bytes: ${totalBytes}
-        - Total time: ${totalTime}ms
-        - Average chunk size: ${Math.round(totalBytes / chunks)} bytes
-      `);
+      console.log(`[Timing] Stream complete - sent ${chunks} chunks (${totalBytes} bytes) in ${Date.now() - startTime}ms`);
+      
     } catch (error) {
-      console.error("[Timing] Error in TTS processing:", error);
+      console.error("Error generating speech:", error);
       res.status(500).json({
-        message: "Failed to generate speech",
-        error: error instanceof Error ? error.message : String(error),
+        error: "Failed to generate speech",
+        message: error instanceof Error ? error.message : String(error),
       });
     }
   });

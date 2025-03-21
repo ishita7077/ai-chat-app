@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Mic, MicOff, Send, Trash2, MessageSquare, Square } from "lucide-react";
+import { Mic, MicOff, Send, Trash2, MessageSquare, Square, Volume2, VolumeX } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { speechHandler } from "@/lib/speech";
 import type { Message } from "@shared/schema";
@@ -15,11 +15,50 @@ export default function Home() {
   const [input, setInput] = useState("");
   const [isListening, setIsListening] = useState(false);
   const [isConversationMode, setIsConversationMode] = useState(false);
+  const [autoplayBlocked, setAutoplayBlocked] = useState(false);
   const { toast } = useToast();
+
+  // Register autoplay blocked handler
+  useEffect(() => {
+    speechHandler.setAutoplayBlockedCallback(() => {
+      setAutoplayBlocked(true);
+      toast({
+        variant: "destructive",
+        title: "Audio autoplay blocked",
+        description: "Click a message to hear responses or enable audio below."
+      });
+    });
+    
+    return () => {
+      speechHandler.setAutoplayBlockedCallback(() => {});
+    };
+  }, [toast]);
+
+  // Function to attempt enabling audio
+  const enableAudio = async () => {
+    try {
+      const result = await speechHandler.ensureAudioPermission();
+      if (result) {
+        setAutoplayBlocked(false);
+        toast({
+          title: "Audio enabled",
+          description: "Voice responses will now play automatically."
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Audio still blocked",
+          description: "Please interact with the page first and try again."
+        });
+      }
+    } catch (error) {
+      console.error('Error enabling audio:', error);
+    }
+  };
 
   const { data: messages = [], isLoading } = useQuery<Message[]>({
     queryKey: ["/api/messages"],
-    onSuccess: (data) => {
+    onSuccess: (data: Message[]) => {
       // If there are no messages, initialize the conversation
       if (data.length === 0) {
         initializeConversation.mutate();
@@ -225,6 +264,24 @@ export default function Home() {
               </Button>
             </div>
           </div>
+
+          {/* Add autoplay blocked notification */}
+          {autoplayBlocked && (
+            <div className="my-2 p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded border border-yellow-300 dark:border-yellow-700 flex items-center justify-between">
+              <span className="text-sm text-yellow-700 dark:text-yellow-300">
+                Audio autoplay is blocked by your browser.
+              </span>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={enableAudio}
+                className="flex items-center gap-1"
+              >
+                <Volume2 className="h-4 w-4" />
+                <span>Enable Audio</span>
+              </Button>
+            </div>
+          )}
 
           <ScrollArea className="flex-1 pr-4">
             {isLoading ? (
