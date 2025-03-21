@@ -84,7 +84,33 @@ const AVAILABLE_VOICES = [
 export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/messages", async (_req, res) => {
     const messages = await storage.getMessages();
-    res.json(messages);
+
+    // If no messages exist, initialize the conversation
+    if (messages.length === 0) {
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "system",
+            content: sys_prompt,
+          },
+          {
+            role: "user",
+            content: "Start the conversation",
+          },
+        ],
+      });
+
+      const initialMessage = {
+        role: "assistant",
+        content: response.choices[0].message.content || "",
+      };
+
+      await storage.createMessage(initialMessage);
+      res.json([initialMessage]);
+    } else {
+      res.json(messages);
+    }
   });
 
   // Add endpoint to get available voices
