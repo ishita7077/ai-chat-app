@@ -25,9 +25,10 @@ export class SpeechHandler {
 
   constructor() {
     this.debugLog('Initializing SpeechHandler');
-    if ('webkitSpeechRecognition' in window) {
+    if (typeof window !== 'undefined' && ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
       try {
-        this.recognition = new window.webkitSpeechRecognition();
+        const SpeechRecognition = window.webkitSpeechRecognition || (window as any).SpeechRecognition;
+        this.recognition = new SpeechRecognition();
         this.recognition.continuous = true;
         this.recognition.interimResults = true;
         this.recognition.lang = 'en-US';
@@ -38,6 +39,9 @@ export class SpeechHandler {
         console.error('Failed to initialize speech recognition:', err);
         this.recognition = null;
       }
+    } else {
+      console.warn('Speech recognition not supported in this browser');
+      this.recognition = null;
     }
 
     this.setupAudioHandlers();
@@ -55,15 +59,35 @@ export class SpeechHandler {
       this.debugLog('Recognition ended');
       this.isListening = false;
 
+      // Only restart if we're in conversation mode and not speaking
       if (this.conversationMode && !this.isSpeaking) {
         this.debugLog('Restarting recognition in conversation mode');
-        this.startListening();
+        setTimeout(() => this.startListening(), 100);
       }
     };
 
     this.recognition.onerror = (event: any) => {
       this.debugLog('Recognition error:', event.error);
       this.isListening = false;
+
+      // Handle specific error types
+      switch (event.error) {
+        case 'not-allowed':
+          console.error('Microphone access denied');
+          break;
+        case 'network':
+          console.error('Network error occurred');
+          break;
+        case 'no-speech':
+          this.debugLog('No speech detected');
+          // Restart recognition if in conversation mode
+          if (this.conversationMode && !this.isSpeaking) {
+            setTimeout(() => this.startListening(), 100);
+          }
+          break;
+        default:
+          console.error(`Speech recognition error: ${event.error}`);
+      }
     };
 
     this.recognition.onresult = (event: any) => {

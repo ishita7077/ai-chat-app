@@ -126,6 +126,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Text is required" });
       }
 
+      console.log("Attempting TTS conversion with ElevenLabs API...");
+
       const response = await fetch(
         `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
         {
@@ -139,20 +141,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
             text,
             model_id: "eleven_multilingual_v2",
             voice_settings: {
-              stability: 0.1, // Minimal stability for fastest processing
-              similarity_boost: 0.1, // Minimal similarity for fastest processing
-              optimize_streaming_latency: 4, // Maximum optimization for latency
-              speaking_rate: 1.3, // Speak 30% faster than normal
+              stability: 0.5,
+              similarity_boost: 0.75,
+              style: 0.5,
+              use_speaker_boost: true,
             },
           }),
         },
       );
 
       if (!response.ok) {
-        throw new Error("Voice synthesis unavailable. Please try again later.");
+        const errorText = await response.text();
+        console.error("ElevenLabs API Error:", {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorText
+        });
+        throw new Error(`Voice synthesis failed: ${response.status} ${errorText}`);
       }
 
       const audioBuffer = await response.arrayBuffer();
+      if (!audioBuffer || audioBuffer.byteLength === 0) {
+        throw new Error("Received empty audio response");
+      }
 
       res.set({
         "Content-Type": "audio/mpeg",
