@@ -8,13 +8,16 @@ export default function Landing() {
   const [, setLocation] = useLocation();
   const [showSecondBubble, setShowSecondBubble] = useState(false);
   const [showThirdBubble, setShowThirdBubble] = useState(false);
+  const [showFourthBubble, setShowFourthBubble] = useState(false);
 
   useEffect(() => {
     const timer1 = setTimeout(() => setShowSecondBubble(true), 1000);
     const timer2 = setTimeout(() => setShowThirdBubble(true), 2000);
+    const timer3 = setTimeout(() => setShowFourthBubble(true), 3000);
     return () => {
       clearTimeout(timer1);
       clearTimeout(timer2);
+      clearTimeout(timer3);
     };
   }, []);
 
@@ -22,15 +25,15 @@ export default function Landing() {
     <div className="landing-page">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
-        <header className="flex justify-between items-center mb-12 py-4 border-b">
+        <header className="flex justify-between items-center mb-20 py-6 border-b">
           <div className="flex items-center gap-2">
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-primary/90 to-primary bg-clip-text text-transparent">
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary/90 to-primary bg-clip-text text-transparent">
               PitchCraft
             </h1>
             <span className="text-sm text-muted-foreground">beta</span>
           </div>
-          <div className="flex items-center gap-6">
-            <nav className="hidden md:flex gap-6">
+          <div className="flex items-center gap-8">
+            <nav className="hidden md:flex gap-8">
               <a href="#features" className="text-muted-foreground hover:text-foreground transition-colors">
                 Features
               </a>
@@ -43,15 +46,16 @@ export default function Landing() {
         </header>
 
         {/* Hero Section */}
-        <div className="text-center mb-20">
-          <h2 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-primary/90 to-primary bg-clip-text text-transparent animate-gradient">
-            Perfect Your Pitch
+        <div className="text-center mb-24">
+          <h2 className="text-5xl md:text-6xl font-bold mb-8 bg-gradient-to-r from-primary/90 to-primary bg-clip-text text-transparent animate-gradient">
+            Your product is magical,
             <br />
-            with AI Intelligence
+            your pitch should be too
           </h2>
-          <p className="text-xl text-muted-foreground mb-12 max-w-2xl mx-auto">
-            Get expert pitch feedback from Rebecca, your AI venture capitalist.
-            Experience natural conversations with voice interaction.
+          <p className="text-2xl text-muted-foreground mb-12 max-w-2xl mx-auto">
+            A good pitch is part science, part magic.
+            <br />
+            Let's get both right.
           </p>
           <Button 
             size="lg" 
@@ -67,25 +71,29 @@ export default function Landing() {
         </div>
 
         {/* Demo Chat Bubbles */}
-        <div className="max-w-2xl mx-auto mb-16 relative min-h-[300px] px-4">
-          <div className="message-bubble message-bubble-ai opacity-0 animate-fadeIn max-w-[70%]">
-            Hi, I'm Rebecca Welton. I've been an early-stage investor since 2017, specializing in Web3 startups. 
-            I'd love to hear about your project.
+        <Card className="max-w-2xl mx-auto mb-16 p-8 bg-white/60 dark:bg-gray-900/60 backdrop-blur-md">
+          <div className="message-bubble message-bubble-user opacity-0 animate-fadeIn max-w-[70%] ml-auto">
+            We're building a decentralized content platform where creators own 100% of their revenue.
           </div>
 
           {showSecondBubble && (
-            <div className="message-bubble message-bubble-user mt-4 opacity-0 animate-fadeIn max-w-[60%] ml-auto">
-              Thanks for having me! I've got a DeFi platform I'd love to discuss.
+            <div className="message-bubble message-bubble-ai mt-4 opacity-0 animate-fadeIn max-w-[70%]">
+              Sounds nice, but why would creators leave platforms that already give them discovery and stability?
             </div>
           )}
 
           {showThirdBubble && (
-            <div className="message-bubble message-bubble-ai mt-4 opacity-0 animate-fadeIn max-w-[70%]">
-              Perfect! Tell me about your target market and what problem you're solving. 
-              And don't worry about the pitch being perfect - that's what I'm here for.
+            <div className="message-bubble message-bubble-user mt-4 opacity-0 animate-fadeIn max-w-[70%] ml-auto">
+              Web3-native creators want full control—no algorithmic throttling, no 30% platform cuts.
             </div>
           )}
-        </div>
+
+          {showFourthBubble && (
+            <div className="message-bubble message-bubble-ai mt-4 opacity-0 animate-fadeIn max-w-[70%]">
+              Cool, but without built-in audiences, your biggest problem isn't monetization—it's distribution.
+            </div>
+          )}
+        </Card>
       </div>
     </div>
   );
