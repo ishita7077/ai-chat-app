@@ -310,13 +310,21 @@ export class SpeechHandler {
 
               // Start playback as soon as first chunk is received
               if (firstChunk) {
-                playbackStartTime = Date.now();
-                this.debugLog('[Timing] First chunk received, starting playback');
+                const chunkReceiveTime = Date.now();
+                this.debugLog(`[Timing] First chunk received at: ${chunkReceiveTime}, ${chunkReceiveTime - startTime}ms after request`);
+
+                // Track playback start timing
+                const playbackStartAttempt = Date.now();
+                this.debugLog('[Timing] Attempting to start playback');
+
                 await this.audio!.play();
+
+                playbackStartTime = Date.now();
+                this.debugLog(`[Timing] Playback started: ${playbackStartTime - chunkReceiveTime}ms after first chunk, ${playbackStartTime - startTime}ms total delay`);
                 firstChunk = false;
               }
 
-              this.debugLog(`[Timing] Processed chunk #${chunks}, size: ${value.length} bytes`);
+              this.debugLog(`[Timing] Processed chunk #${chunks}, size: ${value.length} bytes, at: ${Date.now()}`);
             }
           }
         });

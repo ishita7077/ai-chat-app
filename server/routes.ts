@@ -118,6 +118,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(AVAILABLE_VOICES);
   });
 
+  // Add detailed timing logs
   app.post("/api/tts", async (req, res) => {
     try {
       const startTime = Date.now();
@@ -200,11 +201,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Record timing of first chunk
           if (chunks === 1) {
             firstChunkTime = Date.now() - startTime;
-            console.log(`[Timing] First chunk received after: ${firstChunkTime}ms, size: ${value.length} bytes`);
+            console.log(`[Timing] First chunk received from ElevenLabs after: ${firstChunkTime}ms`);
+            console.log(`[Timing] First chunk size: ${value.length} bytes`);
+            console.log(`[Timing] Server starting to stream first chunk at: ${Date.now()}`);
           }
 
           res.write(Buffer.from(value));
-          console.log(`[Timing] Streamed chunk #${chunks} of size: ${value.length} bytes, total: ${totalBytes} bytes`);
+          console.log(`[Timing] Streamed chunk #${chunks} at: ${Date.now()}, size: ${value.length} bytes, total: ${totalBytes} bytes`);
         }
       }
       res.end();
