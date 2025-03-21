@@ -130,7 +130,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log("[Timing] Sending request to ElevenLabs API");
       const response = await fetch(
-        `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
+        `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream`,
         {
           method: "POST",
           headers: {
@@ -151,20 +151,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
       );
 
-      const apiTime = Date.now() - startTime;
-      console.log(`[Timing] ElevenLabs API response received after: ${apiTime}ms`);
-
       if (!response.ok) {
         const errorText = await response.text();
         console.error("[Timing] ElevenLabs API Error:", {
           status: response.status,
           statusText: response.statusText,
           error: errorText,
-          headers: response.headers,
-          responseTime: apiTime
         });
 
-        // Parse error response to check if it's a quota issue
         try {
           const errorJson = JSON.parse(errorText);
           if (errorJson.detail?.status === "quota_exceeded") {
@@ -182,20 +176,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      console.log("[Timing] Processing audio buffer");
-      const bufferStartTime = Date.now();
-      const audioBuffer = await response.arrayBuffer();
-      console.log(`[Timing] Audio buffer processed in: ${Date.now() - bufferStartTime}ms`);
-
-      // Set response headers
+      // Set streaming headers
       res.setHeader("Content-Type", "audio/mpeg");
-      res.setHeader("Content-Length", audioBuffer.byteLength);
+      res.setHeader("Transfer-Encoding", "chunked");
 
-      // Send the buffer
-      res.send(Buffer.from(audioBuffer));
+      // Stream the response
+      const reader = response.body?.getReader();
+      while (reader) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        if (value) {
+          res.write(Buffer.from(value));
+          console.log("[Timing] Streamed chunk of size:", value.length);
+        }
+      }
+      res.end();
 
       const totalTime = Date.now() - startTime;
-      console.log(`[Timing] Total TTS processing time at server: ${totalTime}ms`);
+      console.log(`[Timing] Total streaming time: ${totalTime}ms`);
+
     } catch (error) {
       console.error("[Timing] Error in TTS processing:", error);
       res.status(500).json({

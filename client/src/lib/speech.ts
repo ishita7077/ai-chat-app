@@ -256,30 +256,51 @@ export class SpeechHandler {
         }
       }
 
-      // Create audio blob from response
-      const blobStartTime = Date.now();
-      this.debugLog('[Timing] Creating audio blob');
-      const audioBlob = await response.blob();
-      const audioUrl = URL.createObjectURL(audioBlob);
-      this.debugLog(`[Timing] Blob created after: ${Date.now() - blobStartTime}ms`);
+      // Create MediaSource for streaming
+      const mediaSource = new MediaSource();
+      const audioUrl = URL.createObjectURL(mediaSource);
 
       if (this.audio) {
-        const playbackStartTime = Date.now();
-        this.debugLog('[Timing] Starting audio playback');
         this.audio.src = audioUrl;
-        await this.audio.play().catch(err => {
-          console.error('Audio playback error:', err);
-          throw new Error('Failed to play audio. Please check your audio settings and permissions.');
+
+        // Handle streaming
+        mediaSource.addEventListener('sourceopen', async () => {
+          const sourceBuffer = mediaSource.addSourceBuffer('audio/mpeg');
+          const reader = response.body?.getReader();
+
+          // Process audio chunks as they arrive
+          let firstChunk = true;
+          while (reader) {
+            const { done, value } = await reader.read();
+
+            if (done) {
+              mediaSource.endOfStream();
+              break;
+            }
+
+            if (value) {
+              // Append chunk to source buffer
+              sourceBuffer.appendBuffer(value);
+
+              // Start playback as soon as first chunk is received
+              if (firstChunk) {
+                this.debugLog('[Timing] First chunk received, starting playback');
+                await this.audio!.play();
+                firstChunk = false;
+              }
+            }
+          }
         });
 
-        // Clean up the object URL after playback
+        // Clean up
         this.audio.onended = () => {
-          this.debugLog(`[Timing] Audio playback ended after: ${Date.now() - playbackStartTime}ms`);
+          this.debugLog(`[Timing] Audio playback ended`);
           URL.revokeObjectURL(audioUrl);
+          this.isSpeaking = false;
         };
 
         const totalTime = Date.now() - startTime;
-        this.debugLog(`[Timing] Total time from text to audio start: ${totalTime}ms`);
+        this.debugLog(`[Timing] Total setup time: ${totalTime}ms`);
       }
     } catch (err) {
       this.debugLog('[Timing] Error occurred in speech synthesis:', err);
