@@ -270,24 +270,40 @@ export class SpeechHandler {
 
           // Process audio chunks as they arrive
           let firstChunk = true;
+          let chunks = 0;
+          let totalBytes = 0;
+          let playbackStartTime = 0;
+
           while (reader) {
             const { done, value } = await reader.read();
 
             if (done) {
               mediaSource.endOfStream();
+              this.debugLog(`[Timing] Stream complete:
+                - Total chunks: ${chunks}
+                - Total bytes: ${totalBytes}
+                - Time to first chunk: ${playbackStartTime - startTime}ms
+                - Total streaming time: ${Date.now() - startTime}ms
+              `);
               break;
             }
 
             if (value) {
+              chunks++;
+              totalBytes += value.length;
+
               // Append chunk to source buffer
               sourceBuffer.appendBuffer(value);
 
               // Start playback as soon as first chunk is received
               if (firstChunk) {
+                playbackStartTime = Date.now();
                 this.debugLog('[Timing] First chunk received, starting playback');
                 await this.audio!.play();
                 firstChunk = false;
               }
+
+              this.debugLog(`[Timing] Processed chunk #${chunks}, size: ${value.length} bytes`);
             }
           }
         });

@@ -182,18 +182,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Stream the response
       const reader = response.body?.getReader();
+      let totalBytes = 0;
+      let chunks = 0;
+      let firstChunkTime = 0;
+
+      // Process audio chunks as they arrive
       while (reader) {
         const { done, value } = await reader.read();
         if (done) break;
+
         if (value) {
+          chunks++;
+          totalBytes += value.length;
+
+          // Record timing of first chunk
+          if (chunks === 1) {
+            firstChunkTime = Date.now() - startTime;
+            console.log(`[Timing] First chunk received after: ${firstChunkTime}ms, size: ${value.length} bytes`);
+          }
+
           res.write(Buffer.from(value));
-          console.log("[Timing] Streamed chunk of size:", value.length);
+          console.log(`[Timing] Streamed chunk #${chunks} of size: ${value.length} bytes, total: ${totalBytes} bytes`);
         }
       }
       res.end();
 
       const totalTime = Date.now() - startTime;
-      console.log(`[Timing] Total streaming time: ${totalTime}ms`);
+      console.log(`[Timing] Streaming stats:
+        - First chunk delay: ${firstChunkTime}ms
+        - Total chunks: ${chunks}
+        - Total bytes: ${totalBytes}
+        - Total time: ${totalTime}ms
+        - Average chunk size: ${Math.round(totalBytes/chunks)} bytes
+      `);
 
     } catch (error) {
       console.error("[Timing] Error in TTS processing:", error);
