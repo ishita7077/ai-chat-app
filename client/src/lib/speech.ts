@@ -214,6 +214,7 @@ export class SpeechHandler {
   }
 
   async speak(text: string, voiceId?: string) {
+    const startTime = Date.now();
     this.debugLog('Speaking text:', text.substring(0, 50) + '...');
 
     try {
@@ -230,6 +231,7 @@ export class SpeechHandler {
 
       this.isSpeaking = true;
 
+      this.debugLog('Requesting audio from ElevenLabs API...');
       const response = await fetch('/api/tts', {
         method: 'POST',
         headers: {
@@ -240,6 +242,9 @@ export class SpeechHandler {
           voiceId
         }),
       });
+
+      const apiResponseTime = Date.now() - startTime;
+      this.debugLog(`ElevenLabs API response time: ${apiResponseTime}ms`);
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -261,6 +266,9 @@ export class SpeechHandler {
           console.error('Audio playback error:', err);
           throw new Error('Failed to play audio. Please check your audio settings and permissions.');
         });
+
+        const totalTime = Date.now() - startTime;
+        this.debugLog(`Total time from text to audio: ${totalTime}ms`);
       }
     } catch (err) {
       this.debugLog('Error with speech synthesis:', err);

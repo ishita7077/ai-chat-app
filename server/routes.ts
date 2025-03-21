@@ -120,6 +120,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/tts", async (req, res) => {
     try {
+      const startTime = Date.now();
       const { text, voiceId = "ThT5KcBeYPX3keUQqHPh" } = req.body;
 
       if (!text) {
@@ -150,13 +151,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
       );
 
+      const apiTime = Date.now() - startTime;
+      console.log(`ElevenLabs API request took ${apiTime}ms`);
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error("ElevenLabs API Error:", {
           status: response.status,
           statusText: response.statusText,
           error: errorText,
-          headers: response.headers
+          headers: response.headers,
+          responseTime: apiTime
         });
 
         // Parse error response to check if it's a quota issue
@@ -181,6 +186,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!audioBuffer || audioBuffer.byteLength === 0) {
         throw new Error("Received empty audio response");
       }
+
+      const totalTime = Date.now() - startTime;
+      console.log(`Total TTS processing time: ${totalTime}ms`);
 
       res.set({
         "Content-Type": "audio/mpeg",
