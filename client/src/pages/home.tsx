@@ -173,6 +173,16 @@ export default function Home() {
     });
   };
 
+  // Update the chat container to auto-scroll
+  useEffect(() => {
+    if (messages.length > 0) {
+      const scrollArea = document.querySelector('.scroll-area-viewport');
+      if (scrollArea) {
+        scrollArea.scrollTop = scrollArea.scrollHeight;
+      }
+    }
+  }, [messages, sendMessage.isPending]);
+
   return (
     <div className="chat-page">
       <div className="container mx-auto max-w-3xl p-4 h-screen flex flex-col justify-center relative z-10">

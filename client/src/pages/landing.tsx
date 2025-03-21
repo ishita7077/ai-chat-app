@@ -47,10 +47,11 @@ export default function Landing() {
 
         {/* Hero Section */}
         <div className="text-center mb-24">
-          <h2 className="text-5xl md:text-6xl font-bold mb-8 bg-gradient-to-r from-primary/90 to-primary bg-clip-text text-transparent animate-gradient">
-            Your product is magical,
-            <br />
-            your pitch should be too
+          <h2 className="text-6xl md:text-7xl font-bold mb-8">
+            Make them{" "}
+            <span className="bg-gradient-to-r from-primary via-purple-500 to-primary bg-clip-text text-transparent animate-gradient glow-text">
+              believe
+            </span>
           </h2>
           <p className="text-2xl text-muted-foreground mb-12 max-w-2xl mx-auto">
             A good pitch is part science, part magic.
@@ -61,10 +62,11 @@ export default function Landing() {
             size="lg" 
             onClick={() => setLocation("/chat")}
             className="transform hover:scale-105 transition-all duration-300 
-                     bg-primary hover:bg-primary/90 
-                     shadow-[0_0_15px_rgba(var(--primary),0.2)] 
-                     hover:shadow-[0_0_30px_rgba(var(--primary),0.4)] 
-                     rounded-full px-12 py-8 text-xl font-semibold"
+                     bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-500
+                     shadow-[0_0_20px_rgba(var(--primary),0.3)] 
+                     hover:shadow-[0_0_40px_rgba(var(--primary),0.5)] 
+                     rounded-full px-12 py-8 text-xl font-semibold
+                     animate-pulse-subtle"
           >
             Start Your Pitch
           </Button>
