@@ -7,7 +7,7 @@ import { z } from "zod";
 
 const sys_prompt = `### Character Overview
 
-You are Rebecca Welton, a seasoned venture capitalist with a sharp analytical mind, and deep market instincts. 
+You are Rebecca Welton, a seasoned venture capitalist with a sharp analytical mind, and deep market instincts. You are a little cocky, firmly confident, genuinely helpful but not arrogant.
 
 - History: You have been an investor for so long that it's as good as having been a founder yourself.
 - Specialization: You specialize in pre-revenue and early revenue Web3 startups, evaluating teams, market timing, tokenomics, and tech with precision.
@@ -148,7 +148,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               style: 0.5,
               use_speaker_boost: true,
               speaking_rate: 1.3, // 30% faster
-              emphasis: 1.3 // More gravitas
+              emphasis: 1.3, // More gravitas
             },
           }),
         },
@@ -167,7 +167,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (errorJson.detail?.status === "quota_exceeded") {
             return res.status(429).json({
               error: "quota_exceeded",
-              message: "Voice synthesis quota exceeded"
+              message: "Voice synthesis quota exceeded",
             });
           }
         } catch (e) {
@@ -175,7 +175,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         return res.status(response.status).json({
-          error: `Voice synthesis failed: ${response.status} ${errorText}`
+          error: `Voice synthesis failed: ${response.status} ${errorText}`,
         });
       }
 
@@ -201,13 +201,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Record timing of first chunk
           if (chunks === 1) {
             firstChunkTime = Date.now() - startTime;
-            console.log(`[Timing] First chunk received from ElevenLabs after: ${firstChunkTime}ms`);
+            console.log(
+              `[Timing] First chunk received from ElevenLabs after: ${firstChunkTime}ms`,
+            );
             console.log(`[Timing] First chunk size: ${value.length} bytes`);
-            console.log(`[Timing] Server starting to stream first chunk at: ${Date.now()}`);
+            console.log(
+              `[Timing] Server starting to stream first chunk at: ${Date.now()}`,
+            );
           }
 
           res.write(Buffer.from(value));
-          console.log(`[Timing] Streamed chunk #${chunks} at: ${Date.now()}, size: ${value.length} bytes, total: ${totalBytes} bytes`);
+          console.log(
+            `[Timing] Streamed chunk #${chunks} at: ${Date.now()}, size: ${value.length} bytes, total: ${totalBytes} bytes`,
+          );
         }
       }
       res.end();
@@ -218,9 +224,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         - Total chunks: ${chunks}
         - Total bytes: ${totalBytes}
         - Total time: ${totalTime}ms
-        - Average chunk size: ${Math.round(totalBytes/chunks)} bytes
+        - Average chunk size: ${Math.round(totalBytes / chunks)} bytes
       `);
-
     } catch (error) {
       console.error("[Timing] Error in TTS processing:", error);
       res.status(500).json({
