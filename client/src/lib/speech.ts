@@ -215,10 +215,11 @@ export class SpeechHandler {
 
   async speak(text: string, voiceId?: string) {
     const startTime = Date.now();
+    this.debugLog(`[Timing] Starting speech synthesis at: ${startTime}`);
     this.debugLog('Speaking text:', text.substring(0, 50) + '...');
 
     try {
-      // Stop listening while speaking to prevent feedback
+      // Stop listening while speaking
       if (this.isListening) {
         this.debugLog('Pausing recognition before speaking');
         this.stopListening();
@@ -231,7 +232,7 @@ export class SpeechHandler {
 
       this.isSpeaking = true;
 
-      this.debugLog('Requesting audio from ElevenLabs API...');
+      this.debugLog('[Timing] Sending TTS request to server');
       const response = await fetch('/api/tts', {
         method: 'POST',
         headers: {
@@ -244,7 +245,7 @@ export class SpeechHandler {
       });
 
       const apiResponseTime = Date.now() - startTime;
-      this.debugLog(`ElevenLabs API response time: ${apiResponseTime}ms`);
+      this.debugLog(`[Timing] Server responded after: ${apiResponseTime}ms`);
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -256,10 +257,15 @@ export class SpeechHandler {
       }
 
       // Create audio blob from response
+      const blobStartTime = Date.now();
+      this.debugLog('[Timing] Creating audio blob');
       const audioBlob = await response.blob();
       const audioUrl = URL.createObjectURL(audioBlob);
+      this.debugLog(`[Timing] Blob created after: ${Date.now() - blobStartTime}ms`);
 
       if (this.audio) {
+        const playbackStartTime = Date.now();
+        this.debugLog('[Timing] Starting audio playback');
         this.audio.src = audioUrl;
         await this.audio.play().catch(err => {
           console.error('Audio playback error:', err);
@@ -268,14 +274,15 @@ export class SpeechHandler {
 
         // Clean up the object URL after playback
         this.audio.onended = () => {
+          this.debugLog(`[Timing] Audio playback ended after: ${Date.now() - playbackStartTime}ms`);
           URL.revokeObjectURL(audioUrl);
         };
 
         const totalTime = Date.now() - startTime;
-        this.debugLog(`Total time from text to audio: ${totalTime}ms`);
+        this.debugLog(`[Timing] Total time from text to audio start: ${totalTime}ms`);
       }
     } catch (err) {
-      this.debugLog('Error with speech synthesis:', err);
+      this.debugLog('[Timing] Error occurred in speech synthesis:', err);
       this.isSpeaking = false;
       throw err;
     }

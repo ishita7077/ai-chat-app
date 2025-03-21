@@ -44,13 +44,17 @@ export default function Home() {
       return res.json();
     },
     onSuccess: (data) => {
+      const messageTimestamp = Date.now();
+      console.log(`[Timing] Message received from server at: ${messageTimestamp}`);
       queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
       setInput("");
 
       // Speak the AI's response
       if (data?.length > 1) {
         const aiResponse = data[1].content;
+        console.log(`[Timing] Starting TTS request at: ${Date.now()}, ${Date.now() - messageTimestamp}ms after message`);
         speechHandler.speak(aiResponse, "ThT5KcBeYPX3keUQqHPh")
+          .then(() => console.log(`[Timing] TTS response received at: ${Date.now()}`))
           .catch((error) => {
             console.error('Speech synthesis error:', error);
             toast({

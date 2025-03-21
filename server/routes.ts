@@ -121,14 +121,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/tts", async (req, res) => {
     try {
       const startTime = Date.now();
+      console.log("[Timing] TTS request received at server");
       const { text, voiceId = "ThT5KcBeYPX3keUQqHPh" } = req.body;
 
       if (!text) {
         return res.status(400).json({ message: "Text is required" });
       }
 
-      console.log("Attempting TTS conversion with ElevenLabs API...");
-
+      console.log("[Timing] Sending request to ElevenLabs API");
       const response = await fetch(
         `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
         {
@@ -152,11 +152,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
 
       const apiTime = Date.now() - startTime;
-      console.log(`ElevenLabs API request took ${apiTime}ms`);
+      console.log(`[Timing] ElevenLabs API response received after: ${apiTime}ms`);
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("ElevenLabs API Error:", {
+        console.error("[Timing] ElevenLabs API Error:", {
           status: response.status,
           statusText: response.statusText,
           error: errorText,
@@ -168,7 +168,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         try {
           const errorJson = JSON.parse(errorText);
           if (errorJson.detail?.status === "quota_exceeded") {
-            return res.status(429).json({ 
+            return res.status(429).json({
               error: "quota_exceeded",
               message: "Voice synthesis quota exceeded"
             });
@@ -177,26 +177,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.error("Failed to parse error response:", e);
         }
 
-        return res.status(response.status).json({ 
+        return res.status(response.status).json({
           error: `Voice synthesis failed: ${response.status} ${errorText}`
         });
       }
 
-      // Get audio buffer
+      console.log("[Timing] Processing audio buffer");
+      const bufferStartTime = Date.now();
       const audioBuffer = await response.arrayBuffer();
+      console.log(`[Timing] Audio buffer processed in: ${Date.now() - bufferStartTime}ms`);
 
       // Set response headers
-      res.setHeader('Content-Type', 'audio/mpeg');
-      res.setHeader('Content-Length', audioBuffer.byteLength);
+      res.setHeader("Content-Type", "audio/mpeg");
+      res.setHeader("Content-Length", audioBuffer.byteLength);
 
       // Send the buffer
       res.send(Buffer.from(audioBuffer));
 
       const totalTime = Date.now() - startTime;
-      console.log(`Total TTS processing time: ${totalTime}ms`);
-
+      console.log(`[Timing] Total TTS processing time at server: ${totalTime}ms`);
     } catch (error) {
-      console.error("Error generating speech:", error);
+      console.error("[Timing] Error in TTS processing:", error);
       res.status(500).json({
         message: "Failed to generate speech",
         error: error instanceof Error ? error.message : String(error),
@@ -285,7 +286,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to initialize conversation" });
     }
   });
-
 
   const httpServer = createServer(app);
   return httpServer;
