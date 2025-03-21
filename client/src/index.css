@@ -19,47 +19,32 @@
     @apply min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800;
   }
 
-  .chat-page {
-    @apply min-h-screen relative;
-    background-image: url('/attached_assets/image_1742369583562.png');
-    background-size: cover;
-    background-position: center;
-    background-attachment: fixed;
-  }
-
-  /* Add overlay for chat page */
-  .chat-page::before {
-    content: '';
-    @apply absolute inset-0 bg-gradient-to-br from-slate-50/95 to-slate-100/95 dark:from-slate-900/95 dark:to-slate-800/95;
-  }
-
   .message-bubble {
-    @apply max-w-[80%] p-3 rounded-3xl shadow-sm transition-all duration-300 relative;
+    @apply p-4 rounded-3xl shadow-sm transition-all duration-300 relative;
   }
 
   .message-bubble-user {
-    @apply bg-gradient-to-b from-primary/80 to-primary text-primary-foreground;
-    animation: slideLeftFade 0.4s ease-out;
+    @apply bg-gradient-to-br from-primary/90 to-primary text-primary-foreground;
+    animation: slideLeftFade 0.5s ease-out;
   }
 
   .message-bubble-user::after {
     content: '';
-    @apply absolute bottom-1 -right-2 w-4 h-4 bg-gradient-to-br from-primary to-primary/90 transform rotate-45;
+    @apply absolute bottom-2 -right-3 w-5 h-5 bg-gradient-to-br from-primary to-primary/90 transform rotate-45;
     clip-path: polygon(0 0, 100% 100%, 0 100%);
   }
 
   .message-bubble-ai {
     @apply bg-gradient-to-br from-blue-50 to-gray-50 dark:from-gray-800 dark:to-gray-700 hover:shadow-md cursor-pointer;
-    animation: slideRightFade 0.4s ease-out;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    animation: slideRightFade 0.5s ease-out;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   }
 
   .message-bubble-ai::after {
     content: '';
-    @apply absolute bottom-1 -left-2 w-4 h-4 bg-gradient-to-br from-blue-50 to-gray-50 dark:from-gray-800 dark:to-gray-700 transform rotate-45;
+    @apply absolute bottom-2 -left-3 w-5 h-5 bg-gradient-to-br from-blue-50 to-gray-50 dark:from-gray-800 dark:to-gray-700 transform rotate-45;
     clip-path: polygon(0 0, 100% 0, 100% 100%);
   }
-
   .mic-button {
     @apply relative transition-all duration-200 hover:scale-110 hover:shadow-md;
   }

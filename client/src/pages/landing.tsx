@@ -20,48 +20,69 @@ export default function Landing() {
 
   return (
     <div className="landing-page">
-      <div className="container mx-auto px-4 py-12">
+      <div className="container mx-auto px-4 py-8">
         {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold">VoiceAI Chat</h1>
-          <ThemeToggle />
-        </div>
+        <header className="flex justify-between items-center mb-12 py-4 border-b">
+          <div className="flex items-center gap-2">
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-primary/90 to-primary bg-clip-text text-transparent">
+              PitchCraft
+            </h1>
+            <span className="text-sm text-muted-foreground">beta</span>
+          </div>
+          <div className="flex items-center gap-6">
+            <nav className="hidden md:flex gap-6">
+              <a href="#features" className="text-muted-foreground hover:text-foreground transition-colors">
+                Features
+              </a>
+              <a href="#about" className="text-muted-foreground hover:text-foreground transition-colors">
+                About
+              </a>
+            </nav>
+            <ThemeToggle />
+          </div>
+        </header>
 
         {/* Hero Section */}
-        <div className="text-center mb-16">
-          <h2 className="text-5xl font-bold mb-6 bg-gradient-to-r from-primary/90 to-primary bg-clip-text text-transparent animate-gradient">
-            Experience AI Conversations
+        <div className="text-center mb-20">
+          <h2 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-primary/90 to-primary bg-clip-text text-transparent animate-gradient">
+            Perfect Your Pitch
             <br />
-            Like Never Before
+            with AI Intelligence
           </h2>
-          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Engage in natural conversations with AI using your voice. 
-            Experience seamless text-to-speech and speech-to-text capabilities.
+          <p className="text-xl text-muted-foreground mb-12 max-w-2xl mx-auto">
+            Get expert pitch feedback from Rebecca, your AI venture capitalist.
+            Experience natural conversations with voice interaction.
           </p>
           <Button 
             size="lg" 
             onClick={() => setLocation("/chat")}
-            className="bg-primary/90 hover:bg-primary hover:scale-105 transition-all duration-300 shadow-[0_0_15px_rgba(0,0,0,0.1)] hover:shadow-[0_0_20px_rgba(var(--primary),0.3)] rounded-full px-8 py-6 text-lg"
+            className="transform hover:scale-105 transition-all duration-300 
+                     bg-primary hover:bg-primary/90 
+                     shadow-[0_0_15px_rgba(var(--primary),0.2)] 
+                     hover:shadow-[0_0_30px_rgba(var(--primary),0.4)] 
+                     rounded-full px-12 py-8 text-xl font-semibold"
           >
-            Get Started
+            Start Your Pitch
           </Button>
         </div>
 
         {/* Demo Chat Bubbles */}
-        <div className="max-w-2xl mx-auto mb-16 relative min-h-[200px]">
-          <div className="message-bubble message-bubble-user opacity-0 animate-fadeIn">
-            How can you help me today?
+        <div className="max-w-2xl mx-auto mb-16 relative min-h-[300px] px-4">
+          <div className="message-bubble message-bubble-ai opacity-0 animate-fadeIn max-w-[70%]">
+            Hi, I'm Rebecca Welton. I've been an early-stage investor since 2017, specializing in Web3 startups. 
+            I'd love to hear about your project.
           </div>
 
           {showSecondBubble && (
-            <div className="message-bubble message-bubble-ai mt-4 opacity-0 animate-fadeIn">
-              I can assist with voice chat, text conversations, and provide helpful responses!
+            <div className="message-bubble message-bubble-user mt-4 opacity-0 animate-fadeIn max-w-[60%] ml-auto">
+              Thanks for having me! I've got a DeFi platform I'd love to discuss.
             </div>
           )}
 
           {showThirdBubble && (
-            <div className="message-bubble message-bubble-user mt-4 opacity-0 animate-fadeIn">
-              That sounds great! Let's get started.
+            <div className="message-bubble message-bubble-ai mt-4 opacity-0 animate-fadeIn max-w-[70%]">
+              Perfect! Tell me about your target market and what problem you're solving. 
+              And don't worry about the pitch being perfect - that's what I'm here for.
             </div>
           )}
         </div>
