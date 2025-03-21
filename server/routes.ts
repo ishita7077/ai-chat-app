@@ -146,6 +146,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               similarity_boost: 0.75,
               style: 0.5,
               use_speaker_boost: true,
+              speaking_rate: 1.3, // 30% faster
+              emphasis: 1.3 // More gravitas
             },
           }),
         },

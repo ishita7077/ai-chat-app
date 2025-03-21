@@ -278,6 +278,12 @@ export class SpeechHandler {
             const { done, value } = await reader.read();
 
             if (done) {
+              // Wait for any pending updates to complete before ending the stream
+              if (sourceBuffer.updating) {
+                await new Promise(resolve => {
+                  sourceBuffer.addEventListener('updateend', resolve, { once: true });
+                });
+              }
               mediaSource.endOfStream();
               this.debugLog(`[Timing] Stream complete:
                 - Total chunks: ${chunks}
@@ -291,6 +297,13 @@ export class SpeechHandler {
             if (value) {
               chunks++;
               totalBytes += value.length;
+
+              // Wait for any pending updates before appending new data
+              if (sourceBuffer.updating) {
+                await new Promise(resolve => {
+                  sourceBuffer.addEventListener('updateend', resolve, { once: true });
+                });
+              }
 
               // Append chunk to source buffer
               sourceBuffer.appendBuffer(value);
