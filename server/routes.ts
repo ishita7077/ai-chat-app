@@ -155,9 +155,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error("ElevenLabs API Error:", {
           status: response.status,
           statusText: response.statusText,
-          error: errorText
+          error: errorText,
+          headers: response.headers
         });
-        throw new Error(`Voice synthesis failed: ${response.status} ${errorText}`);
+
+        // Parse error response to check if it's a quota issue
+        try {
+          const errorJson = JSON.parse(errorText);
+          if (errorJson.detail?.status === "quota_exceeded") {
+            return res.status(429).json({ 
+              error: "quota_exceeded",
+              message: "Voice synthesis quota exceeded"
+            });
+          }
+        } catch (e) {
+          console.error("Failed to parse error response:", e);
+        }
+
+        return res.status(response.status).json({ 
+          error: `Voice synthesis failed: ${response.status} ${errorText}`
+        });
       }
 
       const audioBuffer = await response.arrayBuffer();

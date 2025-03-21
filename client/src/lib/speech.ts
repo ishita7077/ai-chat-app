@@ -133,6 +133,17 @@ export class SpeechHandler {
     });
   }
 
+  private async testAudioPermissions(): Promise<boolean> {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach(track => track.stop());
+      return true;
+    } catch (err) {
+      console.error('Microphone permission test failed:', err);
+      return false;
+    }
+  }
+
   setConversationMode(enabled: boolean) {
     this.debugLog('Setting conversation mode:', enabled);
     this.conversationMode = enabled;
@@ -144,10 +155,18 @@ export class SpeechHandler {
     }
   }
 
-  startListening(onResult?: (text: string) => void, onError?: (error: string) => void) {
+  async startListening(onResult?: (text: string) => void, onError?: (error: string) => void) {
     if (!this.recognition) {
       this.debugLog('Speech recognition not supported');
       onError?.("Speech recognition not supported in this browser");
+      return;
+    }
+
+    // Test microphone permissions first
+    const hasPermission = await this.testAudioPermissions();
+    if (!hasPermission) {
+      this.debugLog('Microphone permission denied');
+      onError?.("Microphone access is required. Please grant permission in your browser settings.");
       return;
     }
 
@@ -223,7 +242,12 @@ export class SpeechHandler {
       });
 
       if (!response.ok) {
-        throw new Error('Voice synthesis unavailable. Please try again later.');
+        const errorData = await response.json();
+        if (errorData.error?.includes("quota_exceeded")) {
+          throw new Error('Voice synthesis quota exceeded. Please try again later.');
+        } else {
+          throw new Error(errorData.error || 'Voice synthesis unavailable. Please check your audio settings.');
+        }
       }
 
       this.debugLog('Audio response received');
@@ -233,7 +257,10 @@ export class SpeechHandler {
       if (this.audio) {
         this.debugLog('Starting audio playback');
         this.audio.src = audioUrl;
-        await this.audio.play();
+        await this.audio.play().catch(err => {
+          console.error('Audio playback error:', err);
+          throw new Error('Failed to play audio. Please check your audio settings and permissions.');
+        });
       }
     } catch (err) {
       this.debugLog('Error with speech synthesis:', err);
